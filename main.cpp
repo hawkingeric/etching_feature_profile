@@ -536,7 +536,7 @@ int main(int argc, char* argv[])
                                 for(int i = 0;    i < cumulativeflux_ClIon.size()-1;     i++){
                                         if  (  rdd1 >= cumulativeflux_ClIon[i] && rdd1 < cumulativeflux_ClIon[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[1])  )*PI/180+PI; //--unit: radian
+                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
                                                         P1.phi = unif(generator)*PI; //--unit: radian
                                                 }
                                                 P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
@@ -559,7 +559,7 @@ int main(int argc, char* argv[])
                                 for(int i = 0;    i < cumulativeflux_Cl2Ion.size()-1;     i++){
                                         if(  rdd1 >= cumulativeflux_Cl2Ion[i] && rdd1 <  cumulativeflux_Cl2Ion[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[1])  )*PI/180+PI; //--unit: radian
+                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
                                                         P1.phi = unif(generator)*PI; //--unit: radian
                                                 }
                                                 P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
@@ -582,7 +582,7 @@ int main(int argc, char* argv[])
                                 for(int i = 0;  i <  cumulativeflux_ArIon.size()-1;  i++){
                                         if  (  rdd1 >= cumulativeflux_ArIon[i] && rdd1 < cumulativeflux_ArIon[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[1])  )*PI/180+PI; //--unit: radian
+                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
                                                         P1.phi = unif(generator)*PI; //--unit: radian
                                                 }
                                                 P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
@@ -723,16 +723,13 @@ int main(int argc, char* argv[])
                                 C1.surface_normal(searching_index, searching_number, itag, P1.iPos, P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
 
                                 if (C1.iStatus[itag] == iMaskStat){
-
-                                        if (P1.ParticleType == iSigType || P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
-                                                break;
-                                        }else if(P1.ParticleType == iClRadicalType){
+                                        if(P1.ParticleType == iClRadicalType){
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
                                                 if ( P1.speed == 0)  break;
                                                 P1.time_interval = dx/P1.speed;
                                                 continue;
                                         }else if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
-                                                //C1.IonMaskReaction(happen_or_not, phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &NoReaction  );
+                                                C1.IonMaskReaction(phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &ReactionExecution  );
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
                                                 if ( P1.speed == 0)  break;
                                                 P1.time_interval = dx/P1.speed;
@@ -740,9 +737,8 @@ int main(int argc, char* argv[])
                                         }
                                 }else if (C1.iStatus[itag] == iSubstrateStat){
 
-                                        if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType ){
-                                                break;
-                                        }else if( P1.ParticleType == iClRadicalType ){
+
+                                        if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
 
                                                 for (int i = 0 ; i < 500 ; i=i+1){
@@ -785,6 +781,12 @@ int main(int argc, char* argv[])
                                                         C1.ArIonReaction( Eth_ArIonReaction, &E0_ArIonReaction, p0_ArIonReaction, type_ArIonReaction,
                                                                                                 phys_sputter_prob, chem_sputter_prob, itag, iNumMaterial, P1.energy*Joule_to_eV,
                                                                                                 incident_angle, &ReactionExecution, &EmitParticle, &reaction_index);
+                                                }
+
+                                                if (ReactionExecution == 1){
+                                                        if (EmitParticle == iSiClgType || EmitParticle == iSiCl2gType || EmitParticle == iSiCl3gType){
+                                                                C1.redeposition(p0_redeposition, EmitParticle, itag, &ReactionExecution, &reaction_index);
+                                                        }
                                                 }
 
 
@@ -851,13 +853,6 @@ int main(int argc, char* argv[])
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
                                                 if ( P1.speed == 0)  break;
                                                 P1.time_interval = dx/P1.speed;
-                                                if (ReactionExecution == 1){
-                                                        if ( EmitParticle == iSigType || EmitParticle == iSiCl4gType ){
-                                                                break;
-                                                        }else if (EmitParticle == iSiClgType || EmitParticle == iSiCl2gType || EmitParticle == iSiCl3gType){
-                                                                C1.redeposition(p0_redeposition, EmitParticle, itag, &ReactionExecution, &reaction_index);
-                                                       }
-                                                }
                                                 continue;
                                         }
                                 }

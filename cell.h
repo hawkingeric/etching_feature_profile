@@ -24,7 +24,7 @@ class cell
                 void ArIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int,  int, double, double, int*, int*, int*);
                 void ClIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&,  int, int, double,  double, int*, int*, int*);
                 void Cl2IonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int, int, double, double, int*, int*, int*);
-                void IonMaskReaction(double, vector<double>&, int, double,  double , int* );
+                void IonMaskReaction(vector<double>&, int, double,  double , int* );
 
 
 

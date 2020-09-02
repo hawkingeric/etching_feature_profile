@@ -192,6 +192,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 }
         }
 
+        /*
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -202,6 +203,8 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
+        */
+
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -227,7 +230,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
         }
 
 
-        if ( happen_or_not < ReactionProb[0] && cell::dNumSiClxs[itag][0] > 0 ){
+        if ( happen_or_not < ReactionProb[0]   ){
                 //--reaction 9 : Si(s) + Cl+ --> Si(g) + Cl*        p0_ClIonReaction[0] = 0.05    Eth = 25 eV    physical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][0]--;
@@ -236,7 +239,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 *ReactionExecution = 1;
                 *EmitParticle = iSigType ;
                 *reaction_index = 9;
-        }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1] && cell::dNumSiClxs[itag][1] > 0 ){
+        }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
                 //--reaction 10 : SiCl(s) + Cl+ --> SiCl2(g)        p0_ClIonReaction[1] = 0.10    Eth = 35 eV    physical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][1]--;
@@ -245,7 +248,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 10;
-         }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2] && cell::dNumSiClxs[itag][1] > 0 ){
+         }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
                 //--reaction 11 : SiCl(s) + Cl+ --> SiCl2(g)        p0_ClIonReaction[2] = 0.20    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][1]--;
@@ -254,7 +257,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 *ReactionExecution =1;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 11;
-        }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] && cell::dNumSiClxs[itag][2] > 0){
+        }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] ){
                 //--reaction 12 : SiCl2(s) + Cl+ --> SiCl2(g) + Cl*        p0_ClIonReaction[3] = 0.5    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][2]--;
@@ -263,7 +266,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 12;
-        }else if(  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4] && cell::dNumSiClxs[itag][3] > 0 ){
+        }else if(  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
                 //--reaction 13 : SiCl3(s) + Cl+ --> SiCl3(g) + Cl*   p0_ClIonReaction[4] = 0.5    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][3]--;
@@ -333,6 +336,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 }
          }
 
+        /*
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -343,7 +347,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-
+        */
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -370,7 +374,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
         }
 
 
-        if (  happen_or_not < ReactionProb[0] && dNumSiClxs[itag][0] > 0){
+        if (  happen_or_not < ReactionProb[0] ){
                 //--reaction  15 : Si(s) + Cl2^+ --> Si(g) + Cl2*        p0_Cl2IonReaction[0] = 0.02    Eth = 25 eV    physical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][0]--;
@@ -379,7 +383,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 *ReactionExecution = 1;
                 *EmitParticle = iSigType ;
                 *reaction_index = 15;
-        }else if ( happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1] && dNumSiClxs[itag][1] > 0 ){
+        }else if ( happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
                 //--reaction 16 : SiCl(s) + Cl2^+ --> SiCl2(g) + Cl*        p0_Cl2IonReaction[1] = 0.20    Eth 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][1]--;
@@ -388,7 +392,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 16;
-        }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2] && dNumSiClxs[itag][2] > 0 ){
+        }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
                 //--reaction 17 : SiCl2(s) + Cl2^+ --> SiCl2(g) + Cl2*        p0_Cl2IonReaction[2] = 0.25    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][2]--;
@@ -397,7 +401,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 17;
-        }else if ( happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] && dNumSiClxs[itag][2] > 0 ){
+        }else if ( happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3]  ){
                 //--reaction 18 : SiCl2(s) + Cl2^+ --> SiCl3(g) + Cl*        p0_Cl2IonReaction[3] = 0.25    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][2]--;
@@ -406,7 +410,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 18;
-         }else if (  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4] && dNumSiClxs[itag][3] > 0 ){
+         }else if (  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
                 //--reaction 19 : SiCl3(s) + Cl2+ --> SiCl3(g) + Cl2*        p0_Cl2IonReaction[4] = 0.25    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][3]--;
@@ -415,7 +419,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 19;
-        }else if (  happen_or_not >= ReactionProb[4] && happen_or_not < ReactionProb[5] && dNumSiClxs[itag][3] > 0){
+        }else if (  happen_or_not >= ReactionProb[4] && happen_or_not < ReactionProb[5] ){
                 //--reaction 20 : SiCl3(s) + Cl2+ --> SiCl4(g) + Cl*        p0_Cl2IonReaction[5] = 0.25    Eth =10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][3]--;
@@ -484,6 +488,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 }
          }
 
+        /*
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -494,6 +499,8 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
+        */
+
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -527,7 +534,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 *ReactionExecution = 1;
                 *EmitParticle = iSigType ;
                 *reaction_index = 22;
-        }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1] && cell::dNumSiClxs[itag][1] > 0 ){
+        }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
                 //--reaction 23 : SiCl(s) + Ar+ --> SiCl(g) + Ar*        p0_ArIonReaction[1] = 0.20    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][1]--;
@@ -536,7 +543,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 *ReactionExecution = 1;
                 *EmitParticle = iSiClgType;
                 *reaction_index = 23;
-        }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2] && cell::dNumSiClxs[itag][2] > 0 ){
+        }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
                 //--reaction 24 : SiCl2(s) + Ar+ --> SiCl2(g) + Ar*        p0_ArIonReaction[2] = 0.50    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][2]--;
@@ -545,7 +552,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 *ReactionExecution = 1;
                 *EmitParticle = iSiCl2gType;
                 *reaction_index = 24;
-        }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] && cell::dNumSiClxs[itag][3] > 0 ){
+        }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3]  ){
                 //--reaction 25 : SiCl3(s) + Ar+ --> SiCl3(g) + Ar*        p0_ArIonReaction[3] = 0.50    Eth = 10 eV    chemical sputtering
                 #pragma omp atomic
                 cell::dNumSiClxs[itag][3]--;
@@ -564,21 +571,23 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
 
 
 
-void cell::IonMaskReaction(double happen_or_not, vector<double>& phys_sputter_prob, int itag, double E,  double incident_angle, int* ReactionExecution  ){
+void cell::IonMaskReaction(vector<double>& phys_sputter_prob, int itag, double E,  double incident_angle, int* ReactionExecution  ){
+        random_device rd;
+        default_random_engine generator( rd() );
+        uniform_real_distribution<double> unif(0.0, 1.0);
+        double happen_or_not = unif(generator);
         double prob_of_energy;
         double prob_of_angle;
+        double EnhanceFactor;
         int angle_index;
         double angle_interval;
         double angle;
         double next_angle;
         double angle_ratio;
-        double EnhanceFactor;
-        double Eth = 15;
-        double E0 = 100;
-        if(E >= Eth){
-                EnhanceFactor = sqrt( (E - Eth)/(E0 - Eth) );
-                prob_of_energy = 0.01*EnhanceFactor;
-        }else if (E < Eth){
+        if(E >= 15){
+                EnhanceFactor = sqrt( (E - 15)/(100 - 15) );
+                prob_of_energy = 0.01*EnhanceFactor ;
+        }else if (E < 15){
                 prob_of_energy = 0.0;
         }
         angle_index = int(floor(incident_angle/phys_sputter_prob.size()));
@@ -591,12 +600,16 @@ void cell::IonMaskReaction(double happen_or_not, vector<double>& phys_sputter_pr
                 angle_ratio = (next_angle - incident_angle)/(incident_angle - angle);
                 prob_of_angle = (phys_sputter_prob[angle_index+1]+phys_sputter_prob[angle_index]*angle_ratio)/(1+angle_ratio) ;
         }
+
+
         if (happen_or_not <= prob_of_angle*prob_of_energy){
-                *ReactionExecution = 1;
+                #pragma omp atomic
                 cell::dNumMask[itag]--;
+                *ReactionExecution = 1;
         }else{
                 *ReactionExecution = 0;
         }
+        if (cell::dNumMask[itag] == 0)          cell::setStatus(itag, iVacuumStat, 1);
 }
 
 

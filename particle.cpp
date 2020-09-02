@@ -122,8 +122,6 @@ double particle::setInitialTheta(int type)
                  incident_angle = t_rand;
          }else if (  type == iClRadicalType ){   //--For particles withour charge
                  incident_angle = unif(generator)*PI/2+PI/2;          //--generate the random number between PI/2 to PI for theta
-                 //incident_angle = PI;
-                 //cout<<"here"<<endl;
          }
          return incident_angle;
 }
@@ -148,7 +146,6 @@ double particle::setReemitTheta(int type)
         }while (prob_density < p_rand) ;
         reemit_angle = t_rand ;
 
-        //reemit_angle = unif(generator)*PI/2 ;
         return reemit_angle;
 }
 
@@ -165,7 +162,6 @@ void particle::reflected_velocity_with_new_energy(double* norm_reflected_V, doub
                 energy_factor = 0;
         }else if ( particle::energy >= epsilon_0 && particle::energy <= epsilon_s ){
                 energy_factor = (particle::energy - epsilon_0)/(epsilon_s - epsilon_0);
-                //energy_factor = 1;
         }else if (particle::energy > epsilon_s){
                 energy_factor = 1;
         }
@@ -176,38 +172,12 @@ void particle::reflected_velocity_with_new_energy(double* norm_reflected_V, doub
                 angle_factor = 0.0;
         }
 
-
-
-
-
-        //--for debug
-        /*
-        if ( *grazing_angle < theta_0 && particle::ParticleType == iArIonType){
-                 cout << "z coordinate = " << particle::iPos[Z_dir] << endl;
-                 cout << "velocity = " << particle::Vel[X_dir] << " " << particle::Vel[Y_dir] << " " << particle::Vel[Z_dir] << endl;
-                 cout << "particle type = " << particle::ParticleType << endl;
-                 cout << "grazing angle = " << *grazing_angle << endl;
-                 cout << "angle_factor = " << angle_factor << endl;
-                 cout << "energy factor = " << energy_factor << endl;
-                 cin.get();
-        }
-        */
-
-
         particle::energy = gamma_0 * angle_factor * energy_factor * particle::energy; //--updated energy
         particle::speed = sqrt(2*particle::energy/particle::mass); //--updated speed
 
         particle::Vel[X_dir] = particle::speed*norm_reflected_V[X_dir];
         particle::Vel[Y_dir] = particle::speed*norm_reflected_V[Y_dir];
         particle::Vel[Z_dir] = particle::speed*norm_reflected_V[Z_dir];
-
-
-
-        /*
-        cout << "particle speed = " << particle::speed <<endl;
-        cout << "norm_reflected_V = "<<norm_reflected_V[0] <<" "<< norm_reflected_V[1] <<" "<<norm_reflected_V[2] <<endl;
-        cout << "velocity = " << particle::Vel[X_dir] << " " << particle::Vel[Y_dir] << " " <<particle::Vel[Z_dir] << endl;
-        */
 }
 
 
