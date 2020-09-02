@@ -30,9 +30,7 @@ int main(int argc, char* argv[])
         string filename_out, velocity_count_outfile, output_file_name;
         int TotalParticle, timestep_number, output_file_number, Nx, Ny, Nz, searching_radius, searching_number ;
         int iSubstrateThickZ, iMaskThickZ, iTrenchWidthX,  iMaskWidthX, iNumMaterial, iNumMask, particleNumber, file_index, frequency ;
-        bool ION_THETA_GAUSSIAN, MASK_SURFACE_NORMAL;
-        bool MASK_REFLECTION_RADICAL, MASK_REFLECTION_ION ;
-        bool PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3 ;
+        bool ION_THETA_GAUSSIAN, PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3 ;
         double dx, dy, dz, Lx, Ly, Lz ;
         double dSubstrateThickZ, dMaskThickZ, dTrenchWidthX, dMaskWidthX ;
         double scale = 1.0 ;
@@ -54,7 +52,6 @@ int main(int argc, char* argv[])
         vector<double> chem_sputter_prob = {1.00,  1.000,   1.00,   1.000,    1.00,   0.9,  0.800,   0.6,   0.30,   0.0};
         //vector<double> phys_sputter_prob =  {1.00,  1.000,   1.00,   1.000,   1.00,    1.0,   1.000,    1.0,   1.00,   1.0};
         //vector<double> chem_sputter_prob = {1.00,  1.000,   1.00,   1.000,    1.00,   1.0,  1.000,    1.0,   1.00,   1.0};
-
         vector<double> p0_ClRadicalReaction = {0.99, 0.40, 0.30, 0.02, 0.0001, 0.08};
         vector<double> p0_redeposition =         {0.02, 0.02, 0.02};
         vector<double> p0_ClIonReaction =      {0.05, 0.10, 0.20, 0.50, 0.50};
@@ -93,6 +90,7 @@ int main(int argc, char* argv[])
                         react_6 = 0, react_7 = 0, react_8 = 0, react_9 = 0, react_10 = 0;
         int num_particle [500] = { 0 };
         int reaction_number[26] = {0};  //--for reaction index from 1 - 26
+
         /*Input Json file*/
         inputJsonFile = "none" ;
         if ( argc > 0 ){
@@ -198,18 +196,11 @@ int main(int argc, char* argv[])
 	                    }else{
 	                            boundary_condition = "periodic" ;
 	                    }
-                        //MATERIAL_SURFACE_NORMAL = config["MATERIAL_SURFACE_NORMAL"];
-                        MASK_SURFACE_NORMAL = config["MASK_SURFACE_NORMAL"];
                         ION_THETA_GAUSSIAN = config["ION_THETA_GAUSSIAN"];
-                        //MASK_TILT = config["MASK_TILT"];
-                        MASK_REFLECTION_RADICAL = config["MASK_REFLECTION_RADICAL"];
-                        MASK_REFLECTION_ION = config["MASK_REFLECTION_ION"];
                         PrintSi = config["PrintSi"];
                         PrintSiCl = config["PrintSiCl"];
                         PrintSiCl2 = config["PrintSiCl2"];
                         PrintSiCl3 = config["PrintSiCl3"];
-                        //mask_sidewall_tilt_angle = config["mask_sidewall_tilt_angle"]; //--unit : degree
-                        //material_sidewall_tilt_angle = config["material_sidewall_tilt_angle"];
                 }
                 cout << endl;
                 cout << "JSON FILE OUTPUT : " << endl;
@@ -240,12 +231,7 @@ int main(int argc, char* argv[])
                 cout << "  TotalParticle                =    " << TotalParticle << endl ;
                 cout << "  timestep_number              =    " << timestep_number << endl ;
                 cout << "  Boundary condition           =    " << boundary_condition << endl;
-                //cout << "  MATERIAL_SURFACE_NORMAL      =    " << MATERIAL_SURFACE_NORMAL << endl;
-                cout << "  MASK_SURFACE_NORMAL          =    " << MASK_SURFACE_NORMAL << endl;
                 cout << "  ION_THETA_GAUSSIAN           =    " << ION_THETA_GAUSSIAN << endl;
-                //cout << "  MASK_TILT                    =    " << MASK_TILT << endl;
-                cout << "  MASK_REFLECTION_RADICAL      =    " << MASK_REFLECTION_RADICAL << endl;
-                cout << "  MASK_REFLECTION_ION          =    " << MASK_REFLECTION_ION << endl;
                 cout << "  PrintSi                      =    " << PrintSi << endl ;
                 cout << "  PrintSiCl                    =    " << PrintSiCl << endl ;
                 cout << "  PrintSiCl2                   =    " << PrintSiCl2 << endl ;
@@ -297,73 +283,6 @@ int main(int argc, char* argv[])
                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
 
 
-
-                /*
-                for(int iz = 0; iz < Nz; iz++){
-                        for(int iy = 0; iy < Ny; iy++){
-                                for(int ix = 0; ix < Nx; ix++){
-                                        int itag =  ix + ( iy + iz*Ny )*Nx;
-                                        if(  iz < iSubstrateThickZ ){
-                                                //--setting for substrate
-                                                C1.setStatus(itag, iSubstrateStat, iNumMaterial);     //--Si has 8 atoms per unit cell with the dimension of 0.54 nm
-                                        }else if (  iz >= iSubstrateThickZ && iz < (iSubstrateThickZ + iMaskThickZ/5)  ) {
-
-                                                if(   ix > iMaskWidthX/2 && ix < (iMaskWidthX/2+iTrenchWidthX)  )   {
-                                                        //--setting for trench
-                                                        C1.setStatus(itag, iVacuumStat, 0);
-                                                }else{
-                                                        //--setting for mask
-                                                        C1.setStatus(itag, iMaskStat, iNumMask);
-                                                }
-
-                                        }else if (  iz >= (iSubstrateThickZ + iMaskThickZ/5) && iz < (iSubstrateThickZ + iMaskThickZ/5*2) ) {
-
-                                                if(   ix > iMaskWidthX/2-1 && ix < (iMaskWidthX/2+iTrenchWidthX+1)  )   {
-                                                        //--setting for trench
-                                                        C1.setStatus(itag, iVacuumStat, 0);
-                                                }else{
-                                                        //--setting for mask
-                                                        C1.setStatus(itag, iMaskStat, iNumMask);
-                                                }
-
-                                        }else if (  iz >= (iSubstrateThickZ + iMaskThickZ/5*2) && iz < (iSubstrateThickZ + iMaskThickZ/5*3) ) {
-
-                                                if(   ix > iMaskWidthX/2-2 && ix < (iMaskWidthX/2+iTrenchWidthX+2)  )   {
-                                                        //--setting for trench
-                                                        C1.setStatus(itag, iVacuumStat, 0);
-                                                }else{
-                                                        //--setting for mask
-                                                        C1.setStatus(itag, iMaskStat, iNumMask);
-                                                }
-
-                                        }else if (  iz >= (iSubstrateThickZ + iMaskThickZ/5*3) && iz < (iSubstrateThickZ + iMaskThickZ/5*4) ) {
-
-                                                if(   ix > iMaskWidthX/2-3 && ix < (iMaskWidthX/2+iTrenchWidthX+3)  )   {
-                                                        //--setting for trench
-                                                        C1.setStatus(itag, iVacuumStat, 0);
-                                                }else{
-                                                        //--setting for mask
-                                                        C1.setStatus(itag, iMaskStat, iNumMask);
-                                                }
-
-                                        }else if (  iz >= (iSubstrateThickZ + iMaskThickZ/5*4) && iz < (iSubstrateThickZ + iMaskThickZ/5*5)  ) {
-
-                                                if(   ix > iMaskWidthX/2-4 && ix < (iMaskWidthX/2+iTrenchWidthX+4)  )   {
-                                                        //--setting for trench
-                                                        C1.setStatus(itag, iVacuumStat, 0);
-                                                }else{
-                                                        //--setting for mask
-                                                        C1.setStatus(itag, iMaskStat, iNumMask);
-                                                }
-
-                                        }else if (   iz >= (iSubstrateThickZ + iMaskThickZ) ){
-                                                //--setting for vacuum
-                                                C1.setStatus(itag, iVacuumStat, 0);
-                                        }
-                                }
-                        }
-                }
-                */
                 for(int iz = 0; iz < Nz; iz++){
                         for(int iy = 0; iy < Ny; iy++){
                                 for(int ix = 0; ix < Nx; ix++){
@@ -773,7 +692,11 @@ int main(int argc, char* argv[])
                                         dPos_six_point[i][Y_dir] = dPos_six_point[i][Y_dir] - C1.dDimLength[Y_dir];
                                         iPos_six_point[i][Y_dir] = iPos_six_point[i][Y_dir] - C1.iDimSize[Y_dir];
                                 }
-                                itag_six_point[i] =  iPos_six_point[i][X_dir] + ( iPos_six_point[i][Y_dir] + iPos_six_point[i][Z_dir]*C1.iDimSize[Y_dir] )*C1.iDimSize[X_dir];
+                                if(iPos_six_point[i][Z_dir] < 0 || iPos_six_point[i][Z_dir] >= C1.iDimSize[Z_dir]){
+                                        break;
+                                }else{
+                                        itag_six_point[i] =  iPos_six_point[i][X_dir] + ( iPos_six_point[i][Y_dir] + iPos_six_point[i][Z_dir]*C1.iDimSize[Y_dir] )*C1.iDimSize[X_dir];
+                                }
                         }
 
                         int count_point_on_solid =0;
@@ -782,7 +705,7 @@ int main(int argc, char* argv[])
                                         count_point_on_solid++;
                                 }
                         }
-                        if (C1.iStatus[itag] == iSubstrateStat){
+                        if (C1.iStatus[itag] == iSubstrateStat || C1.iStatus[itag] == iMaskStat ){
                                 count_point_on_solid++;
                         }
 
@@ -832,39 +755,16 @@ int main(int argc, char* argv[])
                                         if (P1.ParticleType == iSigType || P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
                                                 break;
                                         }
-                                        double surface_angle ;
-                                        if (MASK_SURFACE_NORMAL){
-                                                C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
-                                                                                          P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle, &incident_angle );
-                                        }else{
-                                                //--Particle hit mask top
-                                                if( P1.iPos[Z_dir] == (iSubstrateThickZ+iMaskThickZ-1) ){
-                                                        surface_angle = 0.0;
-                                                }else if (    P1.iPos[X_dir] > iMaskWidthX/2-4 && P1.iPos[X_dir] < (iMaskWidthX/2+4)    ){
-                                                        surface_angle = PI-84/180*PI; //--unit : radii
-                                                }else if (   P1.iPos[X_dir] > (iMaskWidthX/2+iTrenchWidthX-4)  && P1.iPos[X_dir] < (iMaskWidthX/2+iTrenchWidthX+4)    ){
-                                                        surface_angle = 84/180*PI; //--unit : radii
-                                                }
-                                                incident_angle = acos(sin(surface_angle)*P1.Vel[X_dir]/P1.speed + cos(surface_angle)*P1.Vel[Z_dir]/P1.speed)*180/PI;
-                                                if ( incident_angle > 90){
-                                                        incident_angle = 180 - incident_angle;
-                                                }
-                                                grazing_angle = 90 - incident_angle;
-                                                norm_reflected_V[X_dir] = cos(2*surface_angle)*P1.Vel[X_dir]/P1.speed + sin(2*surface_angle)*P1.Vel[Z_dir]/P1.speed;
-                                                norm_reflected_V[Y_dir] = P1.Vel[Y_dir]/P1.speed;
-                                                norm_reflected_V[Z_dir] = sin(2*surface_angle)*P1.Vel[X_dir]/P1.speed - cos(2*surface_angle)*P1.Vel[Z_dir]/P1.speed;
-                                        }
+
+                                        C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
+                                                                                      P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle, &incident_angle );
 
 
                                         if(P1.ParticleType == iClRadicalType){
-                                                if ( MASK_REFLECTION_RADICAL == true) {
-                                                        P1.Vel[X_dir] = P1.speed*norm_reflected_V[X_dir];
-                                                        P1.Vel[Y_dir] = P1.speed*norm_reflected_V[Y_dir];
-                                                        P1.Vel[Z_dir] = P1.speed*norm_reflected_V[Z_dir];
-                                                        continue;
-                                                }else{
-                                                        break;
-                                                }
+                                                P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
+                                                if ( P1.speed == 0)  break;
+                                                P1.time_interval = dx/P1.speed;
+                                                continue;
                                         }else if (P1.ParticleType == iArIonType || P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType){
                                                 //C1.IonMaskReaction(happen_or_not, phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &NoReaction  );
                                                 ReactionExecution = 0;
@@ -872,14 +772,10 @@ int main(int argc, char* argv[])
                                                         if (C1.dNumMask[itag] == 0)          C1.setStatus(itag, iVacuumStat, 1);
                                                         break;
                                                 }else if ( ReactionExecution == 0){
-                                                        if (MASK_REFLECTION_ION == true){
-                                                                P1.Vel[X_dir] = P1.speed*norm_reflected_V[X_dir];
-                                                                P1.Vel[Y_dir] = P1.speed*norm_reflected_V[Y_dir];
-                                                                P1.Vel[Z_dir] = P1.speed*norm_reflected_V[Z_dir];
-                                                                continue;
-                                                        }else{
-                                                                break;
-                                                        }
+                                                        P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
+                                                        if ( P1.speed == 0)  break;
+                                                        P1.time_interval = dx/P1.speed;
+                                                        continue;
                                                 }
                                         }
                                 }else{

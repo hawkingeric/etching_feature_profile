@@ -192,12 +192,8 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 }
         }
 
-        /*
-        for (int i = 0; i < Surfacesites.size(); i++){
-                cout << Surfacesites[i][0] << " " << Surfacesites[i][1] << " " << Surfacesites[i][2] << endl;
-        }
-        cin.get();
-        */
+
+
 
         double xbar, ybar, zbar, xsum, ysum, zsum, numSites, A11, A12, A13, A21, A22, A23, A31, A32, A33;
         xbar = 0; ybar = 0; zbar = 0; xsum = 0; ysum = 0; zsum = 0; numSites = 0;
@@ -260,7 +256,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 poll_y = iPos[Y_dir] + floor(i*norm_surface_N[Y_dir]);
                 poll_z = iPos[Z_dir] + floor(i*norm_surface_N[Z_dir]);
                 itag_poll = poll_x + (poll_y + poll_z*cell::iDimSize[1])*cell::iDimSize[0];
-                if ( cell::iStatus[itag_poll] == 0 || cell::iStatus[itag_poll] == 2){
+                if ( cell::iStatus[itag_poll] == iVacuumStat ){
                         poll_positive++;
                 }
         }
@@ -270,7 +266,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 poll_y = iPos[Y_dir] - floor(i*norm_surface_N[Y_dir]);
                 poll_z = iPos[Z_dir] - floor(i*norm_surface_N[Z_dir]);
                 itag_poll = poll_x + (poll_y + poll_z*cell::iDimSize[1])*cell::iDimSize[0];
-                if ( cell::iStatus[itag_poll] == 0 || cell::iStatus[itag_poll] == 2){
+                if ( cell::iStatus[itag_poll] == iVacuumStat ){
                         poll_negative++;
                 }
         }
@@ -330,10 +326,21 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 *incident_angle = angle_between_surface_normal_and_velocity;
         }
         *grazing_angle =  90 - *incident_angle;
+
         /*
-        cout << "incident angle = " << *incident_angle << endl;
-        cin.get();
+        if ( cell::iStatus[itag] == iMaskStat){
+                for (int i = 0; i < Surfacesites.size(); i++){
+                        cout << Surfacesites[i][0] << " " << Surfacesites[i][1] << " " << Surfacesites[i][2] << endl;
+                }
+                cout << "norm X = " << norm_surface_N[X_dir] <<endl;
+                cout << "norm Y = " << norm_surface_N[Y_dir] <<endl;
+                cout << "norm Z = " << norm_surface_N[Z_dir] <<endl;
+                cout << "incident angle = " << *incident_angle << endl;
+                cin.get();
+        }
         */
+
+
 }
 
 
