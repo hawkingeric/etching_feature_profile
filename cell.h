@@ -18,7 +18,7 @@ class cell
                 void Slope(int, double *);
                 void Slope2(int, double *);
                 void Slope3(int, double *);
-                void surface_normal(int [][3] , int, int, int*, int*, double*, double*, double*, double*, double*);
+                void surface_normal(int [][3] , int, int, int*, double*, double*, double*, double*, double*);
                 void ClRadicalReaction(vector<double>&, int, int, int*, int*);
                 void redeposition(vector<double>&, int, int, int*, int*);
                 void ArIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int,  int, double, double, int*, int*, int*);

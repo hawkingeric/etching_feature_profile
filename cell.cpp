@@ -145,13 +145,12 @@ void cell::setStatus(int iTagCell, int iST, int iNum)
 
 
 //input: itag, iPos, incident_V; output: norm_surface_N, norm_reflected_V, grazing_angle, incident_angle
-void cell::surface_normal(int searching_index[][3], int searching_number, int itag, int* iPos, int* ParticleType,
+void cell::surface_normal(int searching_index[][3], int searching_number, int itag, int* iPos,
                                                         double* incident_V, double* norm_surface_N, double* norm_reflected_V, double* grazing_angle, double* incident_angle ){
         vector<vector<double>> Surfacesites;
         int NN_x, NN_y, NN_z, itagNeighbor;
         int NN_x_for_cal_itag, NN_y_for_cal_itag, NN_z_for_cal_itag;
-        //cout << "iPos = " << iPos[X_dir] << " " << iPos[Y_dir] << " " << iPos[Z_dir] << endl;
-        //cout << "status itag = " << cell::iStatus[itag] << endl;
+
         //--determine surface sites
         for (int i = 0; i < searching_number; i++){
                 NN_x = iPos[X_dir] + searching_index[i][0];
@@ -172,13 +171,6 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 //--calculated itag of Neighboring cell
                 itagNeighbor = NN_x_for_cal_itag + ( NN_y_for_cal_itag + NN_z_for_cal_itag * cell::iDimSize[1])*cell::iDimSize[0];
 
-                /*
-                if( NN_z < 900){
-                        cout << "istatus neighbog = " << cell::iStatus[itagNeighbor] << endl;
-                        cout << NN_x_for_cal_itag << " " << NN_y_for_cal_itag << " " << NN_z_for_cal_itag << endl;
-                        cin.get();
-                }
-                */
 
                 //--check if the cell property of center cell and neighboring cell same
                 if (cell::iStatus[itagNeighbor] == cell::iStatus[itag]){
@@ -191,9 +183,6 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                         }
                 }
         }
-
-
-
 
         double xbar, ybar, zbar, xsum, ysum, zsum, numSites, A11, A12, A13, A21, A22, A23, A31, A32, A33;
         xbar = 0; ybar = 0; zbar = 0; xsum = 0; ysum = 0; zsum = 0; numSites = 0;
@@ -209,11 +198,8 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
         xbar = xsum/numSites;
         ybar = ysum/numSites;
         zbar = zsum/numSites;
-        //cout <<"numSites = " << numSites << endl;
-        //cout <<"xbar = " << xbar << endl;
 
         //--calculated surface normal
-
         for(int i = 0; i < Surfacesites.size(); i++){
                 A11 = A11 + (Surfacesites[i][X_dir] - xbar)*(Surfacesites[i][X_dir] - xbar)*Surfacesites[i][3];
                 A22 = A22 + (Surfacesites[i][Y_dir] - ybar)*(Surfacesites[i][Y_dir] - ybar)*Surfacesites[i][3];
@@ -293,10 +279,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                   }
          }
 
-         /*
-         cout << "norm surface N = " << norm_surface_N[X_dir]<< " " << norm_surface_N[Y_dir] << " " << norm_surface_N[Z_dir] << endl;
-         cin.get();
-        */
+
         //--calculate the normalized reflected velocity
         double speed = sqrt( pow(incident_V[X_dir], 2.0) + pow(incident_V[Y_dir], 2.0) + pow(incident_V[Z_dir], 2.0)  );
         double norm_incident_V [3];

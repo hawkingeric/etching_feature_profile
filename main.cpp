@@ -42,16 +42,11 @@ int main(int argc, char* argv[])
         //                                                                                                                          Cl                     Si                    SiCl               SiCl2              SiCl3                    Cl+                Cl2+              Ar+
         //vector<double> ParticleProb_for_inciden_particle = {0.92085,     0.00000,    0.00000,      0.00000,     0.00000,         0.04186,     0.03474,     0.00255};
         vector<double> ParticleProb_for_incident_particle = {0.95238,         0.0,                 0.0,                 0.0,                 0.0,                0.02518,     0.020900,  0.001534};
-        //vector<double> ParticleProb_for_incident_particle = {         0.0,         0.0,                 0.0,                 0.0,                 0.0,                0.02518,     0.020900,  0.001534};
-        //vector<double> ParticleProb_for_incident_particle = {   0.0,                     0.0,                0.0,                 0.0,                 0.0,                    1.0,                 0.0,                0.0};
-        //vector<double> ParticleProb_for_incident_particle = {0.95238,         0.0,                 0.0,                 0.0,                 0.0,                    0.0,                 0.0,               0.0};
         double speed_cutoff_for_thermal_paricle [ThermalParticleTypes]; //--Array to store pre-calculated cutoff speed
         vector<double> mass_thermal_particle = { 0.0, MassChlorine, MassSilicon, MassSilicon+MassChlorine, MassSilicon+2*MassChlorine,
                                                                                                      MassSilicon+3*MassChlorine };
         vector<double> phys_sputter_prob =  {0.55,  0.555,   0.60,   0.555,   0.85,    1.3,   1.355,    1.0,   0.75,   0.0};
         vector<double> chem_sputter_prob = {1.00,  1.000,   1.00,   1.000,    1.00,   0.9,  0.800,   0.6,   0.30,   0.0};
-        //vector<double> phys_sputter_prob =  {1.00,  1.000,   1.00,   1.000,   1.00,    1.0,   1.000,    1.0,   1.00,   1.0};
-        //vector<double> chem_sputter_prob = {1.00,  1.000,   1.00,   1.000,    1.00,   1.0,  1.000,    1.0,   1.00,   1.0};
         vector<double> p0_ClRadicalReaction = {0.99, 0.40, 0.30, 0.02, 0.0001, 0.08};
         vector<double> p0_redeposition =         {0.02, 0.02, 0.02};
         vector<double> p0_ClIonReaction =      {0.05, 0.10, 0.20, 0.50, 0.50};
@@ -236,8 +231,6 @@ int main(int argc, char* argv[])
                 cout << "  PrintSiCl                    =    " << PrintSiCl << endl ;
                 cout << "  PrintSiCl2                   =    " << PrintSiCl2 << endl ;
                 cout << "  PrintSiCl3                   =    " << PrintSiCl3 << endl ;
-                //cout << "  mask_sidewall_tilt_angle     =    " << mask_sidewall_tilt_angle << endl; //--unit : degree
-                //cout << "  material_sidewall_tilt_angle =    " << material_sidewall_tilt_angle << endl;
                 cout << endl;
         }
 
@@ -712,78 +705,45 @@ int main(int argc, char* argv[])
                         if ( count_point_on_solid == 0){
                                 continue;
                         }else if (count_point_on_solid > 1){
-                                /*
-                                cout << "here" << endl;
-                                cout << "dPos = " << P1.dPos[X_dir] << " " << P1.dPos[Y_dir] << " " << P1.dPos[Z_dir] << endl;
-                                cout << "iPos = " <<P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
-                                cout << "neighboring points : "<< endl;
-                                //for(int i = 0; i<6; i++){
-                                //        cout << dPos_six_point[i][X_dir] << " " << dPos_six_point[i][Y_dir] << " " << dPos_six_point[i][Z_dir] << endl;
-                                //}
-                                for(int i = 0; i<6; i++){
-                                        cout << itag_six_point[i] << " " << iPos_six_point[i][X_dir] << " " << iPos_six_point[i][Y_dir] << " " << iPos_six_point[i][Z_dir] << endl;
-                                }
-                                cout << "--------" << endl;
-                                //cin.get();
-                                */
                                 P1.dPos[X_dir] = old_dPos_X_dir;
                                 P1.dPos[Y_dir] = old_dPos_Y_dir;
                                 P1.dPos[Z_dir] = old_dPos_Z_dir;
                                 P1.time_interval = 0.5 * P1.time_interval;
                                 continue;
                         }else if ( count_point_on_solid == 1){
-
-                                /*
-                                cout << "here" << endl;
-                                cout << "dPos = " << P1.dPos[X_dir] << " " << P1.dPos[Y_dir] << " " << P1.dPos[Z_dir] << endl;
-                                cout << "iPos = " <<P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
-                                cout << "neighboring points : "<< endl;
-                                for(int i = 0; i<6; i++){
-                                        cout << dPos_six_point[i][X_dir] << " " << dPos_six_point[i][Y_dir] << " " << dPos_six_point[i][Z_dir] << endl;
-                                }
-                                for(int i = 0; i<6; i++){
-                                        cout << itag_six_point[i] << " " << iPos_six_point[i][X_dir] << " " << iPos_six_point[i][Y_dir] << " " << iPos_six_point[i][Z_dir] << endl;
-                                }
-                                cin.get();
-                                */
                                 for (int i = 0; i < 6 ; i++){
                                         if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
                                                 itag = itag_six_point[i];
                                         }
                                 }
+
+                                C1.surface_normal(searching_index, searching_number, itag, P1.iPos, P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
+
                                 if (C1.iStatus[itag] == iMaskStat){
+                                        //C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
+                                         //                                             P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle, &incident_angle );
+
                                         if (P1.ParticleType == iSigType || P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
                                                 break;
-                                        }
-
-                                        C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
-                                                                                      P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle, &incident_angle );
-
-
-                                        if(P1.ParticleType == iClRadicalType){
+                                        }else if(P1.ParticleType == iClRadicalType){
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
                                                 if ( P1.speed == 0)  break;
                                                 P1.time_interval = dx/P1.speed;
                                                 continue;
                                         }else if (P1.ParticleType == iArIonType || P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType){
                                                 //C1.IonMaskReaction(happen_or_not, phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &NoReaction  );
-                                                ReactionExecution = 0;
-                                                if ( ReactionExecution == 1) {
-                                                        if (C1.dNumMask[itag] == 0)          C1.setStatus(itag, iVacuumStat, 1);
-                                                        break;
-                                                }else if ( ReactionExecution == 0){
-                                                        P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
-                                                        if ( P1.speed == 0)  break;
-                                                        P1.time_interval = dx/P1.speed;
-                                                        continue;
-                                                }
+                                                P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
+                                                if ( P1.speed == 0)  break;
+                                                P1.time_interval = dx/P1.speed;
+                                                continue;
                                         }
-                                }else{
+                                }else if (C1.iStatus[itag] == iSubstrateStat){
 
                                         if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType ){
                                                 break;
                                         }else if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
+
                                                 for (int i = 0 ; i < 500 ; i=i+1){
                                                         if ( P1.iPos[X_dir] == (101+1*i) || P1.iPos[X_dir] == (101+1*i)  ) {
                                                                 #pragma omp atomic
@@ -802,10 +762,16 @@ int main(int argc, char* argv[])
                                                         }
                                                 }
 
-                                                break;
+                                                if (ReactionExecution == 0){
+                                                        P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
+                                                        if ( P1.speed == 0)  break;
+                                                        P1.time_interval = dx/P1.speed;
+                                                        continue;
+                                                }else{
+                                                        break;
+                                                }
                                         }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){ //--particle is Cl+ or Cl2+ or Ar+
-                                                C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
-                                                                                         P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
+
 
 
                                                 if (P1.ParticleType == iClIonType){
@@ -825,47 +791,47 @@ int main(int argc, char* argv[])
 
                                                 #pragma omp critical
                                                 {
-                                                if ( P1.iPos[X_dir] >= 99 && P1.iPos[X_dir] <= 101 ) {
-                                                        incident_angle_1 += incident_angle;
-                                                        react_1 += ReactionExecution;
-                                                        num_particle_1++;
-                                                }else if (  P1.iPos[X_dir] > 101 && P1.iPos[X_dir] <= 200 ){
-                                                        incident_angle_2 += incident_angle;
-                                                        react_2 += ReactionExecution;
-                                                        num_particle_2++;
-                                                }else if (  P1.iPos[X_dir] > 200 && P1.iPos[X_dir] <= 250 ){
-                                                        incident_angle_3 += incident_angle;
-                                                        react_3 += ReactionExecution;
-                                                        num_particle_3++;
-                                                }else if (  P1.iPos[X_dir] > 250 && P1.iPos[X_dir] <= 300 ){
-                                                        incident_angle_4 += incident_angle;
-                                                        react_4 += ReactionExecution;
-                                                        num_particle_4++;
-                                                }else if (  P1.iPos[X_dir] > 300 && P1.iPos[X_dir] <= 350 ){
-                                                        incident_angle_5 += incident_angle;
-                                                        react_5 += ReactionExecution;
-                                                        num_particle_5++;
-                                                }else if (  P1.iPos[X_dir] > 350 && P1.iPos[X_dir] <= 400 ){
-                                                        incident_angle_6 += incident_angle;
-                                                        react_6 += ReactionExecution;
-                                                        num_particle_6++;
-                                                }else if (  P1.iPos[X_dir] > 400 && P1.iPos[X_dir] <= 450 ){
-                                                        incident_angle_7 += incident_angle;
-                                                        react_7 += ReactionExecution;
-                                                        num_particle_7++;
-                                                }else if (  P1.iPos[X_dir] > 450 && P1.iPos[X_dir] <= 500 ){
-                                                        incident_angle_8 += incident_angle;
-                                                        react_8 += ReactionExecution;
-                                                        num_particle_8++;
-                                                }else if (  P1.iPos[X_dir] > 500 && P1.iPos[X_dir] <= 599 ){
-                                                        incident_angle_9 += + incident_angle;
-                                                        react_9 += ReactionExecution;
-                                                        num_particle_9++;
-                                                }else if (  P1.iPos[X_dir] >= 599 && P1.iPos[X_dir] <= 601 ){
-                                                        incident_angle_10 += incident_angle;
-                                                        react_10 += ReactionExecution;
-                                                        num_particle_10++;
-                                                }
+                                                        if ( P1.iPos[X_dir] >= 99 && P1.iPos[X_dir] <= 101 ) {
+                                                                incident_angle_1 += incident_angle;
+                                                                react_1 += ReactionExecution;
+                                                                num_particle_1++;
+                                                        }else if (  P1.iPos[X_dir] > 101 && P1.iPos[X_dir] <= 200 ){
+                                                                incident_angle_2 += incident_angle;
+                                                                react_2 += ReactionExecution;
+                                                                num_particle_2++;
+                                                        }else if (  P1.iPos[X_dir] > 200 && P1.iPos[X_dir] <= 250 ){
+                                                                incident_angle_3 += incident_angle;
+                                                                react_3 += ReactionExecution;
+                                                                num_particle_3++;
+                                                        }else if (  P1.iPos[X_dir] > 250 && P1.iPos[X_dir] <= 300 ){
+                                                                incident_angle_4 += incident_angle;
+                                                                react_4 += ReactionExecution;
+                                                                num_particle_4++;
+                                                        }else if (  P1.iPos[X_dir] > 300 && P1.iPos[X_dir] <= 350 ){
+                                                                incident_angle_5 += incident_angle;
+                                                                react_5 += ReactionExecution;
+                                                                num_particle_5++;
+                                                        }else if (  P1.iPos[X_dir] > 350 && P1.iPos[X_dir] <= 400 ){
+                                                                incident_angle_6 += incident_angle;
+                                                                react_6 += ReactionExecution;
+                                                                num_particle_6++;
+                                                        }else if (  P1.iPos[X_dir] > 400 && P1.iPos[X_dir] <= 450 ){
+                                                                incident_angle_7 += incident_angle;
+                                                                react_7 += ReactionExecution;
+                                                                num_particle_7++;
+                                                        }else if (  P1.iPos[X_dir] > 450 && P1.iPos[X_dir] <= 500 ){
+                                                                incident_angle_8 += incident_angle;
+                                                                react_8 += ReactionExecution;
+                                                                num_particle_8++;
+                                                        }else if (  P1.iPos[X_dir] > 500 && P1.iPos[X_dir] <= 599 ){
+                                                                incident_angle_9 += + incident_angle;
+                                                                react_9 += ReactionExecution;
+                                                                num_particle_9++;
+                                                        }else if (  P1.iPos[X_dir] >= 599 && P1.iPos[X_dir] <= 601 ){
+                                                                incident_angle_10 += incident_angle;
+                                                                react_10 += ReactionExecution;
+                                                                num_particle_10++;
+                                                        }
                                                 }
 
                                                 for (int i = 0 ; i < 500 ; i=i+1){
