@@ -30,11 +30,9 @@ int main(int argc, char* argv[])
         string filename_out, velocity_count_outfile, output_file_name;
         int TotalParticle, timestep_number, output_file_number, Nx, Ny, Nz, searching_radius, searching_number ;
         int iSubstrateThickZ, iMaskThickZ, iTrenchWidthX,  iMaskWidthX, iNumMaterial, iNumMask, particleNumber, file_index, frequency ;
-        //bool MATERIAL_SURFACE_NORMAL, MASK_SURFACE_NORMAL, ION_THETA_GAUSSIAN, MASK_TILT ;
         bool ION_THETA_GAUSSIAN, MASK_SURFACE_NORMAL;
         bool MASK_REFLECTION_RADICAL, MASK_REFLECTION_ION ;
         bool PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3 ;
-        //double mask_sidewall_tilt_angle, material_sidewall_tilt_angle,
         double dx, dy, dz, Lx, Ly, Lz ;
         double dSubstrateThickZ, dMaskThickZ, dTrenchWidthX, dMaskWidthX ;
         double scale = 1.0 ;
@@ -201,11 +199,11 @@ int main(int argc, char* argv[])
 	                            boundary_condition = "periodic" ;
 	                    }
                         //MATERIAL_SURFACE_NORMAL = config["MATERIAL_SURFACE_NORMAL"];
-                        //MASK_SURFACE_NORMAL = config["MASK_SURFACE_NORMAL"];
+                        MASK_SURFACE_NORMAL = config["MASK_SURFACE_NORMAL"];
                         ION_THETA_GAUSSIAN = config["ION_THETA_GAUSSIAN"];
                         //MASK_TILT = config["MASK_TILT"];
-                        //MASK_REFLECTION_RADICAL = config["MASK_REFLECTION_RADICAL"];
-                        //MASK_REFLECTION_ION = config["MASK_REFLECTION_ION"];
+                        MASK_REFLECTION_RADICAL = config["MASK_REFLECTION_RADICAL"];
+                        MASK_REFLECTION_ION = config["MASK_REFLECTION_ION"];
                         PrintSi = config["PrintSi"];
                         PrintSiCl = config["PrintSiCl"];
                         PrintSiCl2 = config["PrintSiCl2"];
@@ -243,11 +241,11 @@ int main(int argc, char* argv[])
                 cout << "  timestep_number              =    " << timestep_number << endl ;
                 cout << "  Boundary condition           =    " << boundary_condition << endl;
                 //cout << "  MATERIAL_SURFACE_NORMAL      =    " << MATERIAL_SURFACE_NORMAL << endl;
-                //cout << "  MASK_SURFACE_NORMAL          =    " << MASK_SURFACE_NORMAL << endl;
+                cout << "  MASK_SURFACE_NORMAL          =    " << MASK_SURFACE_NORMAL << endl;
                 cout << "  ION_THETA_GAUSSIAN           =    " << ION_THETA_GAUSSIAN << endl;
                 //cout << "  MASK_TILT                    =    " << MASK_TILT << endl;
-                //cout << "  MASK_REFLECTION_RADICAL      =    " << MASK_REFLECTION_RADICAL << endl;
-                //cout << "  MASK_REFLECTION_ION          =    " << MASK_REFLECTION_ION << endl;
+                cout << "  MASK_REFLECTION_RADICAL      =    " << MASK_REFLECTION_RADICAL << endl;
+                cout << "  MASK_REFLECTION_ION          =    " << MASK_REFLECTION_ION << endl;
                 cout << "  PrintSi                      =    " << PrintSi << endl ;
                 cout << "  PrintSiCl                    =    " << PrintSiCl << endl ;
                 cout << "  PrintSiCl2                   =    " << PrintSiCl2 << endl ;
@@ -299,6 +297,8 @@ int main(int argc, char* argv[])
                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
 
 
+
+                /*
                 for(int iz = 0; iz < Nz; iz++){
                         for(int iy = 0; iy < Ny; iy++){
                                 for(int ix = 0; ix < Nx; ix++){
@@ -363,7 +363,27 @@ int main(int argc, char* argv[])
                                 }
                         }
                 }
+                */
+                for(int iz = 0; iz < Nz; iz++){
+                        for(int iy = 0; iy < Ny; iy++){
+                                for(int ix = 0; ix < Nx; ix++){
+                                        int itag =  ix + ( iy + iz*Ny )*Nx;
+                                        if(  iz < iSubstrateThickZ ){
+                                                //--setting for substrate
+                                                C1.setStatus(itag, iSubstrateStat, iNumMaterial);     //--Si has 8 atoms per unit cell with the dimension of 0.54 nm
+                                        }else if (  iz >= iSubstrateThickZ && iz < (iSubstrateThickZ + iMaskThickZ)  ) {
 
+                                                if(   ix > iMaskWidthX/2 && ix < (iMaskWidthX/2+iTrenchWidthX)  )   {
+                                                        //--setting for trench
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else{
+                                                        //--setting for mask
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }
+                                        }
+                                }
+                        }
+                }
 
         }else{
                 string buffer_string_line;
@@ -863,10 +883,10 @@ int main(int argc, char* argv[])
                                                 }
                                         }
                                 }else{
-                                        //--particle is SiCl(g) or SiCl2(g) or SiCl3(g)
+
                                         if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType ){
                                                 break;
-                                        }else if( P1.ParticleType == iClRadicalType ){  //--particle is Cl radical
+                                        }else if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
                                                 for (int i = 0 ; i < 500 ; i=i+1){
                                                         if ( P1.iPos[X_dir] == (101+1*i) || P1.iPos[X_dir] == (101+1*i)  ) {
@@ -890,9 +910,7 @@ int main(int argc, char* argv[])
                                         }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){ //--particle is Cl+ or Cl2+ or Ar+
                                                 C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
                                                                                          P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
-                                                //double v_dot_n = P1.Vel[X_dir]*norm_surface_N[X_dir]+P1.Vel[Y_dir]*norm_surface_N[Y_dir]+P1.Vel[Z_dir]*norm_surface_N[Z_dir];
-                                                //if (v_dot_n >= 0)        break;
-                                                //cout << incident_angle << endl;
+
 
                                                 if (P1.ParticleType == iClIonType){
                                                         C1.ClIonReaction(Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction, type_ClIonReaction,
