@@ -460,7 +460,7 @@ int main(int argc, char* argv[])
                 particle P1;
                 P1.setInitialType(ParticleProb_for_incident_particle);
                 P1.iNumHitMask = 0;
-                double rdd;
+                double rdd1, rdd2, rdd3;
                 int ReactionExecution = 0;
                 int EmitParticle = 0;
                 int reaction_index = 0;
@@ -526,19 +526,20 @@ int main(int argc, char* argv[])
                          case iClIonType:
                                 P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
                                 P1.mass = MassChlorine;
-                                rdd = unif(generator);
+                                rdd1 = unif(generator);
+                                rdd2 = unif(generator);
+                                rdd3 = unif(generator);
                                 if ( ION_THETA_GAUSSIAN == true){
                                         P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
                                         P1.phi = unif(generator)*2*PI; //--unit: radian
                                 }
                                 for(int i = 0;    i < cumulativeflux_ClIon.size()-1;     i++){
-                                        if  (  rdd >= cumulativeflux_ClIon[i] && rdd < cumulativeflux_ClIon[i+1]  ){
+                                        if  (  rdd1 >= cumulativeflux_ClIon[i] && rdd1 < cumulativeflux_ClIon[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
-
-                                                        P1.theta = ion_angle.at(i)*PI/180+PI; //--unit: radian
+                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[1])  )*PI/180+PI; //--unit: radian
                                                         P1.phi = unif(generator)*PI; //--unit: radian
                                                 }
-                                                P1.energy = ion_energy.at(i)/Joule_to_eV;//--unit: Joule
+                                                P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
                                                 P1.speed = sqrt(2*P1.energy/P1.mass);
                                                 break;
                                         }
@@ -548,18 +549,20 @@ int main(int argc, char* argv[])
                         case iCl2IonType:
                                 P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
                                 P1.mass = MassChlorine*2;
-                                rdd = unif(generator);
+                                rdd1 = unif(generator);
+                                rdd2 = unif(generator);
+                                rdd3 = unif(generator);
                                 if ( ION_THETA_GAUSSIAN == true){
                                         P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
                                         P1.phi = unif(generator)*2*PI; //--unit: radian
                                 }
                                 for(int i = 0;    i < cumulativeflux_Cl2Ion.size()-1;     i++){
-                                        if(  cumulativeflux_Cl2Ion[i] <= rdd && rdd <  cumulativeflux_Cl2Ion[i+1]  ){
+                                        if(  rdd1 >= cumulativeflux_Cl2Ion[i] && rdd1 <  cumulativeflux_Cl2Ion[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta = ion_angle.at(i)*PI/180+PI; //--unit: radian
+                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[1])  )*PI/180+PI; //--unit: radian
                                                         P1.phi = unif(generator)*PI; //--unit: radian
                                                 }
-                                                P1.energy = ion_energy.at(i)/Joule_to_eV;//--unit: Joule
+                                                P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
                                                 P1.speed = sqrt(2*P1.energy/P1.mass);
                                                 break;
                                         }
@@ -569,20 +572,20 @@ int main(int argc, char* argv[])
                         case  iArIonType:
                                 P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
                                 P1.mass = MassArgon;
-                                rdd = unif(generator);
+                                rdd1 = unif(generator);
+                                rdd2 = unif(generator);
+                                rdd3 = unif(generator);
                                 if ( ION_THETA_GAUSSIAN == true){
                                         P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
                                         P1.phi = unif(generator)*2*PI; //--unit: radian
-                                        //cout << 180-P1.theta/PI*180 << endl;
-                                        //cin.get();
                                 }
                                 for(int i = 0;  i <  cumulativeflux_ArIon.size()-1;  i++){
-                                        if  (  rdd >= cumulativeflux_ArIon[i] && rdd < cumulativeflux_ArIon[i+1]  ){
+                                        if  (  rdd1 >= cumulativeflux_ArIon[i] && rdd1 < cumulativeflux_ArIon[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta = ion_angle.at(i)*PI/180+PI; //--unit: radian
+                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[1])  )*PI/180+PI; //--unit: radian
                                                         P1.phi = unif(generator)*PI; //--unit: radian
                                                 }
-                                                P1.energy = ion_energy.at(i)/Joule_to_eV;  //--unit: Joule
+                                                P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
                                                 P1.speed = sqrt(2*P1.energy/P1.mass);
                                                 break;
                                         }
@@ -720,8 +723,6 @@ int main(int argc, char* argv[])
                                 C1.surface_normal(searching_index, searching_number, itag, P1.iPos, P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
 
                                 if (C1.iStatus[itag] == iMaskStat){
-                                        //C1.surface_normal(searching_index, searching_number, itag, P1.iPos, &P1.ParticleType,
-                                         //                                             P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle, &incident_angle );
 
                                         if (P1.ParticleType == iSigType || P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
                                                 break;
@@ -730,7 +731,7 @@ int main(int argc, char* argv[])
                                                 if ( P1.speed == 0)  break;
                                                 P1.time_interval = dx/P1.speed;
                                                 continue;
-                                        }else if (P1.ParticleType == iArIonType || P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType){
+                                        }else if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
                                                 //C1.IonMaskReaction(happen_or_not, phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &NoReaction  );
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
                                                 if ( P1.speed == 0)  break;
@@ -770,9 +771,7 @@ int main(int argc, char* argv[])
                                                 }else{
                                                         break;
                                                 }
-                                        }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){ //--particle is Cl+ or Cl2+ or Ar+
-
-
+                                        }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){
 
                                                 if (P1.ParticleType == iClIonType){
                                                         C1.ClIonReaction(Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction, type_ClIonReaction,
@@ -852,17 +851,14 @@ int main(int argc, char* argv[])
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
                                                 if ( P1.speed == 0)  break;
                                                 P1.time_interval = dx/P1.speed;
-
-
                                                 if (ReactionExecution == 1){
-                                                        if ( EmitParticle == iSigType || EmitParticle == iSiCl4gType )   break;
-                                                        else if (EmitParticle == iSiClgType || EmitParticle == iSiCl2gType || EmitParticle == iSiCl3gType){
+                                                        if ( EmitParticle == iSigType || EmitParticle == iSiCl4gType ){
+                                                                break;
+                                                        }else if (EmitParticle == iSiClgType || EmitParticle == iSiCl2gType || EmitParticle == iSiCl3gType){
                                                                 C1.redeposition(p0_redeposition, EmitParticle, itag, &ReactionExecution, &reaction_index);
                                                        }
                                                 }
-
                                                 continue;
-
                                         }
                                 }
                         }
