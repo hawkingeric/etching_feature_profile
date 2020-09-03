@@ -27,18 +27,15 @@ int main(int argc, char* argv[])
         /* Declaration*/
         string inputJsonFile, tmpString, directory, boundary_condition, output_type, append, vtkDataType, geometry, meshfile, meshDATASET ;
         string ion_energy_data_file, ion_angle_data_file, cumulativeflux_ArIon_file, cumulativeflux_ClIon_file, cumulativeflux_Cl2Ion_file;
-        string filename_out, velocity_count_outfile, output_file_name;
+        string output_file_name, IEADF_data_directory;
         int TotalParticle, timestep_number, output_file_number, Nx, Ny, Nz, searching_radius, searching_number ;
         int iSubstrateThickZ, iMaskThickZ, iTrenchWidthX,  iMaskWidthX, iNumMaterial, iNumMask, particleNumber, file_index, frequency ;
         bool ION_THETA_GAUSSIAN, PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3 ;
-        double dx, dy, dz, Lx, Ly, Lz ;
-        double dSubstrateThickZ, dMaskThickZ, dTrenchWidthX, dMaskWidthX ;
-        double scale = 1.0 ;
+        double dx, dy, dz, Lx, Ly, Lz, dSubstrateThickZ, dMaskThickZ, dTrenchWidthX, dMaskWidthX, Temperature ;
         vector<double> cumulativeflux_ArIon, cumulativeflux_ClIon, cumulativeflux_Cl2Ion, ion_energy, ion_angle;
 
          /* Initialization*/
         int ThermalParticleTypes = 6; //--Total number of thermal species, here we incluse Cl radical, SiCl(g), SiCl2(g), and SiCl3(g)
-        double Temperature = 1000;  //--unit: K
         //                                                                                                                          Cl                     Si                    SiCl               SiCl2              SiCl3                    Cl+                Cl2+              Ar+
         //vector<double> ParticleProb_for_inciden_particle = {0.92085,     0.00000,    0.00000,      0.00000,     0.00000,         0.04186,     0.03474,     0.00255};
         vector<double> ParticleProb_for_incident_particle = {0.95238,         0.0,                 0.0,                 0.0,                 0.0,                0.02518,     0.020900,  0.001534};
@@ -61,18 +58,7 @@ int main(int argc, char* argv[])
         double E0_ClIonReaction = 100;
         double E0_Cl2IonReaction = 100;
         double E0_ArIonReaction = 100;
-        ion_energy_data_file =            "/home/crpan/plasma.ti/RAISE/IEADF_data/energy.dat";
-        ion_angle_data_file =               "/home/crpan/plasma.ti/RAISE/IEADF_data/angle.dat";
-        cumulativeflux_ClIon_file =   "/home/crpan/plasma.ti/RAISE/IEADF_data/cumulativefluxClIon_data.dat";
-        cumulativeflux_Cl2Ion_file = "/home/crpan/plasma.ti/RAISE/IEADF_data/cumulativefluxCl2Ion_data.dat";
-        cumulativeflux_ArIon_file =   "/home/crpan/plasma.ti/RAISE/IEADF_data/cumulativefluxArIon_data.dat";
-        filename_out =                              "/home/crpan/plasma.ti/RAISE/IEADF_data/flux3_generated.dat";
-        velocity_count_outfile =           "/home/crpan/plasma.ti/RAISE/velocity_distribution.dat";
-        ion_energy                         = read_data(   ion_energy_data_file    );
-        ion_angle                            = read_data(   ion_angle_data_file    );
-        cumulativeflux_ClIon    = read_data(   cumulativeflux_ClIon_file   );
-        cumulativeflux_Cl2Ion = read_data(   cumulativeflux_Cl2Ion_file  );
-        cumulativeflux_ArIon   = read_data(   cumulativeflux_ArIon_file   );
+
 
 
 
@@ -127,18 +113,12 @@ int main(int argc, char* argv[])
 	                            cout << "No geometry tag in input file! " << endl ;
 	                            exit( 1 ) ;
 	                    }
-	                    if ( config.find( "scale" ) != config.end() ){
-                                scale = config[ "scale" ] ;
-                                if ( config.find( "meshfile" ) != config.end() ){
-	                                    meshfile = config[ "meshfile" ] ;
-	                            }else{
-	                                    cout << "No meshfile tag in input file! " << endl ;
-	                                    //meshfile = "none" ;
-		                                exit( 1 ) ;
-	                            }
-                        }else{
-                                cout << "No mesh tag in input file! " << endl ;
-                                exit( 1 ) ;
+	                    if ( config.find( "meshfile" ) != config.end() ){
+	                            meshfile = config[ "meshfile" ] ;
+	                    }else{
+	                            cout << "No meshfile tag in input file! " << endl ;
+	                            //meshfile = "none" ;
+		                        exit( 1 ) ;
 	                    }
 	                    dx                                 = config["cell_size"] ; //--unit : m, x length per cell size
 	                    Nx                                = config["domain_size_x"]; //--number of cells in x direction
@@ -191,6 +171,8 @@ int main(int argc, char* argv[])
 	                    }else{
 	                            boundary_condition = "periodic" ;
 	                    }
+	                    Temperature = config["Temperature"];
+                        IEADF_data_directory = config["IEADF_data_directory"];
                         ION_THETA_GAUSSIAN = config["ION_THETA_GAUSSIAN"];
                         PrintSi = config["PrintSi"];
                         PrintSiCl = config["PrintSiCl"];
@@ -201,7 +183,6 @@ int main(int argc, char* argv[])
                 cout << "JSON FILE OUTPUT : " << endl;
                 cout << "Mesh:" << endl ;
                 cout << "  geometry	               =    " << geometry << endl ;
-                cout << "  scale		               =    " << scale << endl ;
                 cout << "  meshfile	               =    " << meshfile << endl ;
                 cout << "  cell_size                    =    " << dx << endl ;
                 cout << "  domain size x                =    " << Nx << endl ;
@@ -226,6 +207,8 @@ int main(int argc, char* argv[])
                 cout << "  TotalParticle                =    " << TotalParticle << endl ;
                 cout << "  timestep_number              =    " << timestep_number << endl ;
                 cout << "  Boundary condition           =    " << boundary_condition << endl;
+                cout << "  Temperature                  =    "  << Temperature << endl;
+                cout << "  IEADF_data_directory         =    " << IEADF_data_directory << endl;
                 cout << "  ION_THETA_GAUSSIAN           =    " << ION_THETA_GAUSSIAN << endl;
                 cout << "  PrintSi                      =    " << PrintSi << endl ;
                 cout << "  PrintSiCl                    =    " << PrintSiCl << endl ;
@@ -233,6 +216,19 @@ int main(int argc, char* argv[])
                 cout << "  PrintSiCl3                   =    " << PrintSiCl3 << endl ;
                 cout << endl;
         }
+
+
+        /*Read IEADF data*/
+        ion_energy_data_file =            IEADF_data_directory + "energy.dat";
+        ion_angle_data_file =               IEADF_data_directory + "angle.dat";
+        cumulativeflux_ClIon_file =   IEADF_data_directory + "cumulativefluxClIon_data.dat";
+        cumulativeflux_Cl2Ion_file = IEADF_data_directory + "cumulativefluxCl2Ion_data.dat";
+        cumulativeflux_ArIon_file =   IEADF_data_directory + "cumulativefluxArIon_data.dat";
+        ion_energy                         = read_data(   ion_energy_data_file    );
+        ion_angle                            = read_data(   ion_angle_data_file    );
+        cumulativeflux_ClIon    = read_data(   cumulativeflux_ClIon_file   );
+        cumulativeflux_Cl2Ion = read_data(   cumulativeflux_Cl2Ion_file  );
+        cumulativeflux_ArIon   = read_data(   cumulativeflux_ArIon_file   );
 
         /*Initialization for file output*/
         file_index = 0;
@@ -246,7 +242,6 @@ int main(int argc, char* argv[])
         speed_cutoff_for_thermal_paricle[iSiCl2gType]       = calc_v_cut(  mass_thermal_particle.at(iSiCl2gType),         Temperature  );
         speed_cutoff_for_thermal_paricle[iSiCl3gType]       = calc_v_cut(  mass_thermal_particle.at(iSiCl3gType),         Temperature  );
 
-
         /*Pre-calculation for surface sites*/
         searching_number = pow(2*searching_radius, 3);
         int searching_index [searching_number][3];
@@ -259,7 +254,6 @@ int main(int argc, char* argv[])
                         }
                 }
         }
-
 
         /* Initialization for cell */
         cell C1;
@@ -284,7 +278,6 @@ int main(int argc, char* argv[])
                                                 //--setting for substrate
                                                 C1.setStatus(itag, iSubstrateStat, iNumMaterial);     //--Si has 8 atoms per unit cell with the dimension of 0.54 nm
                                         }else if (  iz >= iSubstrateThickZ && iz < (iSubstrateThickZ + iMaskThickZ)  ) {
-
                                                 if(   ix > iMaskWidthX/2 && ix < (iMaskWidthX/2+iTrenchWidthX)  )   {
                                                         //--setting for trench
                                                         C1.setStatus(itag, iVacuumStat, 0);

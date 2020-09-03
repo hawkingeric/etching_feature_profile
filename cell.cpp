@@ -159,8 +159,8 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 NN_x_for_cal_itag = NN_x;
                 NN_y_for_cal_itag = NN_y;
                 NN_z_for_cal_itag = NN_z;
-                //--periodic boundary condition
 
+                //--periodic boundary condition
                 while (NN_x_for_cal_itag >= cell::iDimSize[X_dir] )  NN_x_for_cal_itag -= cell::iDimSize[X_dir];
                 while (NN_y_for_cal_itag >= cell::iDimSize[Y_dir] )  NN_y_for_cal_itag -= cell::iDimSize[Y_dir];
                 while (NN_z_for_cal_itag >= cell::iDimSize[Z_dir] )  NN_z_for_cal_itag -= cell::iDimSize[Z_dir];

@@ -192,7 +192,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 }
         }
 
-
+        /*
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -203,7 +203,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-
+        */
 
 
         //--calculation of total prob, and cumulative prob
@@ -336,7 +336,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 }
          }
 
-
+        /*
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -347,7 +347,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-
+        */
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -488,7 +488,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 }
          }
 
-
+        /*
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -499,7 +499,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-
+        */
 
 
         //--calculation of total prob, and cumulative prob
