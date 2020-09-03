@@ -168,10 +168,10 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 }
 
                 if( type_ClIonReaction[i] == P_sputtering ){
-                        angle_index = int(floor(incident_angle/phys_sputter_prob.size()));
+                        angle_index = int(incident_angle/phys_sputter_prob.size());
                         angle_interval = 90.0/(phys_sputter_prob.size()-1);
-                        angle = double(angle_index) * angle_interval;
-                        next_angle = double(angle_index+1) * angle_interval;
+                        angle = angle_index*angle_interval;
+                        next_angle = (angle_index+1) * angle_interval;
                         if ( incident_angle == angle ){
                                 prob_of_angle.push_back(   phys_sputter_prob[angle_index]    );
                         }else{
@@ -192,7 +192,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 }
         }
 
-        /*
+
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -203,7 +203,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-        */
+
 
 
         //--calculation of total prob, and cumulative prob
@@ -312,10 +312,10 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                         prob_of_energy.push_back(0.0);
                 }
                 if( type_Cl2IonReaction[i] == P_sputtering ){
-                        angle_index = int(floor(incident_angle/phys_sputter_prob.size()));
+                        angle_index = int(incident_angle/phys_sputter_prob.size());
                         angle_interval = 90.0/(phys_sputter_prob.size()-1);
-                        angle = double(angle_index) * angle_interval;
-                        next_angle = double(angle_index+1) * angle_interval;
+                        angle = angle_index*angle_interval;
+                        next_angle = (angle_index+1) * angle_interval;
                         if ( incident_angle == angle ){
                                 prob_of_angle.push_back(   phys_sputter_prob[angle_index]    );
                         }else{
@@ -323,10 +323,10 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                                 prob_of_angle.push_back( (phys_sputter_prob[angle_index+1]+phys_sputter_prob[angle_index]*angle_ratio)/(1+angle_ratio)  );
                         }
                 }else if (type_Cl2IonReaction[i] == C_sputtering){
-                        angle_index = int(floor(incident_angle/chem_sputter_prob.size()));
+                        angle_index = int(incident_angle/chem_sputter_prob.size());
                         angle_interval = 90.0/(chem_sputter_prob.size()-1);
-                        angle = double(angle_index) * angle_interval;
-                        next_angle = double(angle_index+1) * angle_interval;
+                        angle = angle_index * angle_interval;
+                        next_angle = (angle_index+1) * angle_interval;
                         if (  incident_angle == angle ){
                                 prob_of_angle.push_back( chem_sputter_prob[angle_index]  );
                         }else{
@@ -336,7 +336,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 }
          }
 
-        /*
+
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -347,7 +347,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-        */
+
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -464,10 +464,10 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                         prob_of_energy.push_back(0.0);
                 }
                 if( type_ArIonReaction[i] == P_sputtering ){
-                        angle_index = int(floor(incident_angle/phys_sputter_prob.size()));
+                        angle_index = int(incident_angle/phys_sputter_prob.size());
                         angle_interval = 90.0/(phys_sputter_prob.size()-1);
-                        angle = double(angle_index) * angle_interval;
-                        next_angle = double(angle_index+1) * angle_interval;
+                        angle = angle_index * angle_interval;
+                        next_angle = (angle_index+1) * angle_interval;
                         if ( incident_angle == angle ){
                                 prob_of_angle.push_back(   phys_sputter_prob[angle_index]    );
                         }else{
@@ -475,10 +475,10 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                                 prob_of_angle.push_back( (phys_sputter_prob[angle_index+1]+phys_sputter_prob[angle_index]*angle_ratio)/(1+angle_ratio)  );
                         }
                 }else if (type_ArIonReaction[i] == C_sputtering){
-                        angle_index = int(floor(incident_angle/chem_sputter_prob.size()));
+                        angle_index = int(incident_angle/chem_sputter_prob.size());
                         angle_interval = 90.0/(chem_sputter_prob.size()-1);
-                        angle = double(angle_index) * angle_interval;
-                        next_angle = double(angle_index+1) * angle_interval;
+                        angle = angle_index*angle_interval;
+                        next_angle = (angle_index+1) * angle_interval;
                         if (  incident_angle == angle ){
                                 prob_of_angle.push_back( chem_sputter_prob[angle_index]  );
                         }else{
@@ -488,7 +488,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 }
          }
 
-        /*
+
         if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
                cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
                for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
@@ -499,7 +499,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                           cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
             for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
         }
-        */
+
 
 
         //--calculation of total prob, and cumulative prob
