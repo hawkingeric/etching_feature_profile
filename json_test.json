@@ -2,16 +2,15 @@
   "mesh":
   {
     "geometry":                    "3D",
-    "scale":		           1,
     "meshfile":                    "none",
     "cell_size":                   0.5E-3,
-    "domain_size_x":               700,  "//_units for tags below": "number of cells",
-    "domain_size_y":               1,
-    "domain_size_z":               1000,
-    "substrate_thickness":         900,
+    "domain_size_x":               300,  "//_units for tags below": "number of cells",
+    "domain_size_y":               2,
+    "domain_size_z":               500,
+    "substrate_thickness":         400,
     "mask_thickness":              50,
-    "trench_width":                500,
-    "mask_width":                  200,
+    "trench_width":                200,
+    "mask_width":                  100,
     "atom_number_in_material":     1,
     "atom_number_in_mask":	   50,
     "searching_radius":            6   	    
@@ -20,16 +19,17 @@
   {
     "type_name":	            "VTK",
     "vtkDataType":                  "STRUCTURED_POINTS",
-    "output_file_directory":        "/home/crpan/plasma.ti/RAISE/project_feature_profile_simulation_particle_volume_v3/feature_profile/iNum1_openMP/",
+    "output_file_directory":        "../../feature_profile/Ny1/",
     "output_file_name":             "feature_profile-",
     "output_file_number":           20
   },
   "simulation_conditions":
   {           
-    "TotalParticle":                2E7,
+    "TotalParticle":                1E7,
     "timestep_number":              1E4,
     "boundary_condition":           "periodic",  "//_comment for boundary_condition": "periodic or reflective",  
-    "ReflectiveBoundary":           false,
+    "Temperature":                  1000,
+    "IEADF_data_directory":         "../../IEADF_data/",
     "ION_THETA_GAUSSIAN":           false,
     "PrintSi":                      false,   "//_if you wish to record SiClxs in every step": "set these four tags true",
     "PrintSiCl":                    false,
