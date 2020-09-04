@@ -718,7 +718,7 @@ int main(int argc, char* argv[])
                                 if (C1.iStatus[itag] == iMaskStat){
                                         if(P1.ParticleType == iClRadicalType){
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
-                                                if ( P1.speed == 0)  break;
+                                                if ( P1.speed == 0)    break;
                                                 P1.time_interval = dx/P1.speed;
                                                 continue;
                                         }else if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
@@ -729,8 +729,6 @@ int main(int argc, char* argv[])
                                                 continue;
                                         }
                                 }else if (C1.iStatus[itag] == iSubstrateStat){
-
-
                                         if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
 
@@ -753,8 +751,10 @@ int main(int argc, char* argv[])
                                                 }
 
                                                 if (ReactionExecution == 0){
-                                                        P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
-                                                        if ( P1.speed == 0)  break;
+                                                        P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
+                                                        P1.Vel[X_dir] = P1.speed*norm_surface_N[X_dir];
+                                                        P1.Vel[Y_dir] = P1.speed*norm_surface_N[Y_dir];
+                                                        P1.Vel[Z_dir] = P1.speed*norm_surface_N[Z_dir];
                                                         P1.time_interval = dx/P1.speed;
                                                         continue;
                                                 }else{
@@ -775,13 +775,13 @@ int main(int argc, char* argv[])
                                                                                                 phys_sputter_prob, chem_sputter_prob, itag, iNumMaterial, P1.energy*Joule_to_eV,
                                                                                                 incident_angle, &ReactionExecution, &EmitParticle, &reaction_index);
                                                 }
-
+                                                /*
                                                 if (ReactionExecution == 1){
                                                         if (EmitParticle == iSiClgType || EmitParticle == iSiCl2gType || EmitParticle == iSiCl3gType){
                                                                 C1.redeposition(p0_redeposition, EmitParticle, itag, &ReactionExecution, &reaction_index);
                                                         }
                                                 }
-
+                                                */
 
                                                 #pragma omp critical
                                                 {
