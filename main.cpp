@@ -245,9 +245,9 @@ int main(int argc, char* argv[])
         /*Pre-calculation for surface sites*/
         searching_number = pow(2*searching_radius, 3);
         int searching_index [searching_number][3];
-        for (int k = 0; k < 2*searching_radius; k++){
-                for (int j = 0; j < 2*searching_radius; j++){
-                        for(int i = 0; i < 2*searching_radius; i++){
+        for (int k = 0; k <= 2*searching_radius; k++){
+                for (int j = 0; j <= 2*searching_radius; j++){
+                        for(int i = 0; i <= 2*searching_radius; i++){
                                 searching_index[i+(j+k*2*searching_radius)*2*searching_radius][0] = i - searching_radius;
                                 searching_index[i+(j+k*2*searching_radius)*2*searching_radius][1] = j - searching_radius;
                                 searching_index[i+(j+k*2*searching_radius)*2*searching_radius][2] = k - searching_radius;
