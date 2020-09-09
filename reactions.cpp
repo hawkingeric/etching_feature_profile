@@ -142,8 +142,8 @@ void cell::redeposition(vector<double>& p0_redeposition, int AdsorbParticle, int
 
 
 void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<double>& p0_ClIonReaction, vector<int>& type_ClIonReaction,
-                                                    vector<double>& phys_sputter_prob, vector<double>& chem_sputter_prob,
-                                                    int itag, int iNumMaterial, double E, double incident_angle, int* ReactionExecution, int* EmitParticle, int* reaction_index){
+                                                    vector<double>& phys_sputter_prob, vector<double>& chem_sputter_prob, int itag, int iNumMaterial, double E,
+                                                    double incident_angle, int* ReactionExecution, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
         random_device rd;
         default_random_engine generator( rd() );
         uniform_real_distribution<double> unif(0.0, 1.0);
@@ -237,6 +237,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iClIonType;
                 *EmitParticle = iSigType ;
                 *reaction_index = 9;
         }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
@@ -246,6 +247,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 10;
          }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
@@ -255,6 +257,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution =1;
+                *ReflectedParticle = 0;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 11;
         }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] ){
@@ -264,6 +267,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 12;
         }else if(  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
@@ -273,6 +277,7 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 13;
         }else{
@@ -286,8 +291,8 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
 
 
 void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector<double>& p0_Cl2IonReaction, vector<int>& type_Cl2IonReaction,
-                                                      vector<double>& phys_sputter_prob, vector<double>& chem_sputter_prob,
-                                                       int itag, int iNumMaterial, double E,  double incident_angle, int* ReactionExecution, int* EmitParticle, int* reaction_index){
+                                                      vector<double>& phys_sputter_prob, vector<double>& chem_sputter_prob, int itag, int iNumMaterial, double E,
+                                                      double incident_angle, int* ReactionExecution, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
         random_device rd;
         default_random_engine generator( rd() );
         uniform_real_distribution<double> unif(0.0, 1.0);
@@ -381,6 +386,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iCl2IonType;
                 *EmitParticle = iSigType ;
                 *reaction_index = 15;
         }else if ( happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
@@ -390,6 +396,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 16;
         }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
@@ -399,6 +406,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iCl2IonType;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 17;
         }else if ( happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3]  ){
@@ -408,6 +416,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 18;
          }else if (  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
@@ -417,6 +426,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iCl2IonType;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 19;
         }else if (  happen_or_not >= ReactionProb[4] && happen_or_not < ReactionProb[5] ){
@@ -426,6 +436,7 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl4gType ;
                 *reaction_index = 20;
         }else{
@@ -439,8 +450,8 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
 
 
 void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<double>& p0_ArIonReaction, vector<int>& type_ArIonReaction,
-                                                    vector<double>& phys_sputter_prob, vector<double>& chem_sputter_prob,
-                                                    int itag, int iNumMaterial, double E, double incident_angle, int* ReactionExecution, int* EmitParticle, int* reaction_index){
+                                                    vector<double>& phys_sputter_prob, vector<double>& chem_sputter_prob, int itag, int iNumMaterial, double E,
+                                                    double incident_angle, int* ReactionExecution, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
         random_device rd;
         default_random_engine generator( rd() );
         uniform_real_distribution<double> unif(0.0, 1.0);
@@ -532,6 +543,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iArIonType ;
                 *EmitParticle = iSigType ;
                 *reaction_index = 22;
         }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
@@ -541,6 +553,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iArIonType;
                 *EmitParticle = iSiClgType;
                 *reaction_index = 23;
         }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
@@ -550,6 +563,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iArIonType;
                 *EmitParticle = iSiCl2gType;
                 *reaction_index = 24;
         }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3]  ){
@@ -559,6 +573,7 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 #pragma omp atomic
                 cell::dNumMaterial[itag]--;
                 *ReactionExecution = 1;
+                *ReflectedParticle = iArIonType;
                 *EmitParticle = iSiCl3gType;
                 *reaction_index = 25;
         }else{

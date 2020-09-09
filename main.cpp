@@ -459,6 +459,7 @@ int main(int argc, char* argv[])
                 double rdd1, rdd2, rdd3;
                 int ReactionExecution = 0;
                 int EmitParticle = 0;
+                int ReflectedParticle = 0;
                 int reaction_index = 0;
                 double norm_surface_N [3];     //--normalized surface normal vector
                 double norm_reflected_V [3];  //--normalized reflected velocity vector
@@ -768,16 +769,18 @@ int main(int argc, char* argv[])
                                                 if (P1.ParticleType == iClIonType){
                                                         C1.ClIonReaction(Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction, type_ClIonReaction,
                                                                                                phys_sputter_prob, chem_sputter_prob, itag, iNumMaterial, P1.energy*Joule_to_eV,
-                                                                                               incident_angle, &ReactionExecution, &EmitParticle, &reaction_index);
+                                                                                               incident_angle, &ReactionExecution, &ReflectedParticle, &EmitParticle, &reaction_index);
                                                 }else if (P1.ParticleType == iCl2IonType){
                                                         C1.Cl2IonReaction(Eth_Cl2IonReaction, &E0_Cl2IonReaction, p0_Cl2IonReaction, type_Cl2IonReaction,
                                                                                                  phys_sputter_prob, chem_sputter_prob, itag, iNumMaterial, P1.energy*Joule_to_eV,
-                                                                                                incident_angle, &ReactionExecution, &EmitParticle, &reaction_index);
+                                                                                                incident_angle, &ReactionExecution, &ReflectedParticle, &EmitParticle, &reaction_index);
                                                 }else if (P1.ParticleType == iArIonType){
                                                         C1.ArIonReaction( Eth_ArIonReaction, &E0_ArIonReaction, p0_ArIonReaction, type_ArIonReaction,
                                                                                                 phys_sputter_prob, chem_sputter_prob, itag, iNumMaterial, P1.energy*Joule_to_eV,
-                                                                                                incident_angle, &ReactionExecution, &EmitParticle, &reaction_index);
+                                                                                                incident_angle, &ReactionExecution, &ReflectedParticle, &EmitParticle, &reaction_index);
                                                 }
+
+                                                P1.ParticleType = ReflectedParticle;
                                                 /*
                                                 if (ReactionExecution == 1){
                                                         if (EmitParticle == iSiClgType || EmitParticle == iSiCl2gType || EmitParticle == iSiCl3gType){
