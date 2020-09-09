@@ -61,6 +61,7 @@ void particle::setInitialType(vector<double>& ParticleProb_for_incident_particle
         }
 
         double RandParticle = unif(generator);
+
         if (RandParticle >= 0 && RandParticle < CumuProb[0]){
                 particle::ParticleType = iClRadicalType;
         }else if ( RandParticle >= CumuProb[0] && RandParticle < CumuProb[1]){
@@ -122,6 +123,7 @@ double particle::setInitialTheta(int type)
                  incident_angle = t_rand;
          }else if (  type == iClRadicalType ){   //--For particles withour charge
                  incident_angle = unif(generator)*PI/2+PI/2;          //--generate the random number between PI/2 to PI for theta
+
          }
          return incident_angle;
 }

@@ -243,14 +243,17 @@ int main(int argc, char* argv[])
         speed_cutoff_for_thermal_paricle[iSiCl3gType]       = calc_v_cut(  mass_thermal_particle.at(iSiCl3gType),         Temperature  );
 
         /*Pre-calculation for surface sites*/
-        searching_number = pow(2*searching_radius, 3);
+        int searching_range = 2*searching_radius+1;
+        searching_number = pow(  searching_range, 3);
+        //cout << searching_number << endl;
+        //cin.get();
         int searching_index [searching_number][3];
-        for (int k = 0; k <= 2*searching_radius; k++){
-                for (int j = 0; j <= 2*searching_radius; j++){
-                        for(int i = 0; i <= 2*searching_radius; i++){
-                                searching_index[i+(j+k*2*searching_radius)*2*searching_radius][0] = i - searching_radius;
-                                searching_index[i+(j+k*2*searching_radius)*2*searching_radius][1] = j - searching_radius;
-                                searching_index[i+(j+k*2*searching_radius)*2*searching_radius][2] = k - searching_radius;
+        for (int k = 0; k < searching_range; k++){
+                for (int j = 0; j < searching_range; j++){
+                        for(int i = 0; i < searching_range; i++){
+                                searching_index[i+(j+k*searching_range )*searching_range ][0] = i - searching_radius;
+                                searching_index[i+(j+k*searching_range )*searching_range ][1] = j - searching_radius;
+                                searching_index[i+(j+k*searching_range )*searching_range ][2] = k - searching_radius;
                         }
                 }
         }
@@ -530,7 +533,7 @@ int main(int argc, char* argv[])
                                         if  (  rdd1 >= cumulativeflux_ClIon[i] && rdd1 < cumulativeflux_ClIon[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
                                                         P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
-                                                        P1.phi = unif(generator)*PI; //--unit: radian
+                                                        P1.phi = unif(generator)*2*PI; //--unit: radian
                                                 }
                                                 P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
                                                 P1.speed = sqrt(2*P1.energy/P1.mass);
@@ -553,7 +556,7 @@ int main(int argc, char* argv[])
                                         if(  rdd1 >= cumulativeflux_Cl2Ion[i] && rdd1 <  cumulativeflux_Cl2Ion[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
                                                         P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
-                                                        P1.phi = unif(generator)*PI; //--unit: radian
+                                                        P1.phi = unif(generator)*2*PI; //--unit: radian
                                                 }
                                                 P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
                                                 P1.speed = sqrt(2*P1.energy/P1.mass);
@@ -576,7 +579,7 @@ int main(int argc, char* argv[])
                                         if  (  rdd1 >= cumulativeflux_ArIon[i] && rdd1 < cumulativeflux_ArIon[i+1]  ){
                                                 if ( ION_THETA_GAUSSIAN == false){
                                                         P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
-                                                        P1.phi = unif(generator)*PI; //--unit: radian
+                                                        P1.phi = unif(generator)*2*PI; //--unit: radian
                                                 }
                                                 P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
                                                 P1.speed = sqrt(2*P1.energy/P1.mass);
