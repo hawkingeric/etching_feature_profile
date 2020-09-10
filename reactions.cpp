@@ -192,19 +192,6 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 }
         }
 
-        /*
-        if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-               cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
-               for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }else if ( cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-                          cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
-              for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }else if ( cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-                          cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
-            for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }
-        */
-
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -282,6 +269,8 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                 *reaction_index = 13;
         }else{
                 *ReactionExecution = 0;
+                *ReflectedParticle = iClIonType;
+                *EmitParticle = 0;
                 *reaction_index = 0;
         }
         if ( cell::dNumMaterial[itag] == 0 )      cell::setStatus(itag, iVacuumStat, 1);
@@ -340,19 +329,6 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                         }
                 }
          }
-
-        /*
-        if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-               cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
-               for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }else if ( cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-                          cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
-              for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }else if ( cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-                          cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
-            for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }
-        */
 
         //--calculation of total prob, and cumulative prob
         vector<double> ReactionProb;
@@ -441,6 +417,8 @@ void cell::Cl2IonReaction(vector<double>& Eth_Cl2IonReaction, double* E0, vector
                 *reaction_index = 20;
         }else{
                 *ReactionExecution = 0;
+                *ReflectedParticle = iCl2IonType;
+                *EmitParticle = 0;
                 *reaction_index = 0;
         }
         if ( cell::dNumMaterial[itag] == 0 )   cell::setStatus(itag, iVacuumStat, 1);
@@ -498,19 +476,6 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                         }
                 }
          }
-
-        /*
-        if (  cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-               cell::iStatus[cell::iID_NBR[itag][22]] == iVacuumStat  ){
-               for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }else if ( cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-                          cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
-              for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }else if ( cell::iStatus[cell::iID_NBR[itag][12]] == iVacuumStat && cell::iStatus[cell::iID_NBR[itag][14]] == iVacuumStat &&
-                          cell::iStatus[cell::iID_NBR[itag][4]] == iVacuumStat ){
-            for (int i = 0; i < number_of_reactions; i++)  prob_of_angle[i] = 1;
-        }
-        */
 
 
         //--calculation of total prob, and cumulative prob
@@ -578,6 +543,8 @@ void cell::ArIonReaction(vector<double>& Eth_ArIonReaction, double* E0, vector<d
                 *reaction_index = 25;
         }else{
                 *ReactionExecution = 0;
+                *ReflectedParticle = iArIonType;
+                *EmitParticle = 0;
                 *reaction_index = 0;
         }
         if ( cell::dNumMaterial[itag] == 0 )   cell::setStatus(itag, iVacuumStat, 1);

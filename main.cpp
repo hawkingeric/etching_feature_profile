@@ -60,7 +60,8 @@ int main(int argc, char* argv[])
         double E0_Cl2IonReaction = 100;
         double E0_ArIonReaction = 100;
         int reaction_number[26] = {0};  //--for reaction index from 1 - 26
-
+        int n_for_cosine_law = 1;
+        double particle_radius_scale = 0.2;
 
         /*Input Json file*/
         inputJsonFile = "none" ;
@@ -433,9 +434,9 @@ int main(int argc, char* argv[])
 
 
         /*particle size*/
-        double dx_particle = 0.2*dx;
-        double dy_particle = 0.2*dy;
-        double dz_particle = 0.2*dz;
+        double dx_particle = particle_radius_scale*dx;
+        double dy_particle = particle_radius_scale*dy;
+        double dz_particle = particle_radius_scale*dz;
         double six_point_particle [6][3] = {  {-1, 0, 0}, {+1, 0, 0}, {0, -1, 0}, {0, +1, 0}, {0, 0, -1}, {0, 0, +1} };
 
 
@@ -465,6 +466,8 @@ int main(int argc, char* argv[])
                 double norm_EmitParticle_V [3];                                             //--normalized velocity for emitted particle
                 double dPos_EmitParticle [3];                                                    //--dPos for emitted particle
                 int iPos_EmitParticle [3];                                                               //--iPos for emitted particle
+                double alpha;                                                                                        //--azimusal angle of surface normal vector
+                double beta;                                                                                           //--polar angle of surface normal vector;
 
                 //--Count total number of particle and write to a file in a vtk format
                 #pragma omp critical
@@ -573,6 +576,7 @@ int main(int argc, char* argv[])
 
                 for(int indexTimeStep = 0; indexTimeStep < timestep_number; indexTimeStep++){
 
+
                         //--chech if particle has been deactivated
                         if(P1.ParticleType == 0){
                                 if (EmitParticle == 0){
@@ -580,11 +584,11 @@ int main(int argc, char* argv[])
                                 }else{
                                         P1.ParticleType = EmitParticle;
                                         if (EmitParticle == iSiClgType){
-                                                P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iSiClgType]  );
+                                                P1.speed = P1.setInitialSpeed( Temperature,   MassSilicon+MassChlorine,   speed_cutoff_for_thermal_paricle[iSiClgType]  );
                                         }else if ( EmitParticle == iSiCl2gType){
-                                                P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iSiCl2gType]  );
+                                                P1.speed = P1.setInitialSpeed( Temperature,   MassSilicon+2*MassChlorine,   speed_cutoff_for_thermal_paricle[iSiCl2gType]  );
                                         }else if ( EmitParticle == iSiCl3gType){
-                                                P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iSiCl3gType]  );
+                                                P1.speed = P1.setInitialSpeed( Temperature,   MassSilicon+3*MassChlorine,   speed_cutoff_for_thermal_paricle[iSiCl3gType]  );
                                         }
                                         P1.dPos[X_dir] = dPos_EmitParticle[X_dir];
                                         P1.dPos[Y_dir] = dPos_EmitParticle[Y_dir];
@@ -592,11 +596,21 @@ int main(int argc, char* argv[])
                                         P1.iPos[X_dir] = iPos_EmitParticle[X_dir];
                                         P1.iPos[Y_dir] = iPos_EmitParticle[Y_dir];
                                         P1.iPos[Z_dir] = iPos_EmitParticle[Z_dir];
-                                        P1.Vel[X_dir] = P1.speed*norm_EmitParticle_V[X_dir];
-                                        P1.Vel[Y_dir] = P1.speed*norm_EmitParticle_V[Y_dir];
-                                        P1.Vel[Z_dir] = P1.speed*norm_EmitParticle_V[Z_dir];
+                                        P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
+                                        P1.phi = unif(generator)*2*PI;
+                                        if( norm_EmitParticle_V[X_dir] == 0 && norm_EmitParticle_V[Y_dir] == 0 ){
+                                                alpha = 0;
+                                        }else{
+                                                alpha = acos(norm_EmitParticle_V[X_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  ) );
+                                        }
+                                        beta = acos(norm_EmitParticle_V[Z_dir]);
+                                        P1.Vel[X_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi));
+                                        P1.Vel[Y_dir] = P1.speed*( sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi));
+                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta));
+                                        EmitParticle = 0;
                                 }
                         }
+
 
                         //--Give old_iPos and old_dPos values
                         old_iPos[X_dir] = P1.iPos[X_dir];
@@ -606,6 +620,8 @@ int main(int argc, char* argv[])
                         old_dPos[Y_dir] = P1.dPos[Y_dir] ;
                         old_dPos[Z_dir] = P1.dPos[Z_dir] ;
                         old_itag = old_iPos[X_dir] + ( old_iPos[Y_dir] + old_iPos[Z_dir]*C1.iDimSize[Y_dir] )*C1.iDimSize[X_dir];
+
+
 
                         //--propagation
                         P1.Vel[X_dir]       = P1.Vel[X_dir] - C1.grad_potential[old_itag][X_dir] / P1.mass * P1.time_interval;
@@ -617,6 +633,8 @@ int main(int argc, char* argv[])
                         P1.iPos[X_dir]     = int(   floor(P1.dPos[X_dir]/C1.dDimLength_per_cell[X_dir] )  );
                         P1.iPos[Y_dir]     = int(   floor(P1.dPos[Y_dir] /C1.dDimLength_per_cell[Y_dir] ) );
                         P1.iPos[Z_dir]     = int(   floor(P1.dPos[Z_dir]/C1.dDimLength_per_cell[Z_dir] ) );
+
+
 
                         //--boundary condition
                         if (boundary_condition == "reflective"){
@@ -654,12 +672,19 @@ int main(int argc, char* argv[])
                                         P1.iPos[Y_dir] = P1.iPos[Y_dir] - C1.iDimSize[Y_dir];
                                 }
                         }else{
-                                if (  P1.iPos[X_dir] <  0 ||  P1.iPos[X_dir] >= C1.iDimSize[X_dir] )    break;
-                                if (   P1.iPos[Y_dir] < 0 ||  P1.iPos[Y_dir] >= C1.iDimSize[Y_dir] )    break;
+                                if (  P1.iPos[X_dir] <  0 ||  P1.iPos[X_dir] >= C1.iDimSize[X_dir] ){
+                                        P1.ParticleType = 0;
+                                        continue;
+                                }
+                                if (   P1.iPos[Y_dir] < 0 ||  P1.iPos[Y_dir] >= C1.iDimSize[Y_dir] ){
+                                        P1.ParticleType = 0;
+                                        continue;
+                                }
                         }
 
                         if(P1.iPos[Z_dir] < 0 || P1.iPos[Z_dir] >= C1.iDimSize[Z_dir]){
-                                break;
+                                P1.ParticleType = 0;
+                                continue;
                         }else{
                                 itag =  P1.iPos[X_dir] + ( P1.iPos[Y_dir] + P1.iPos[Z_dir]*C1.iDimSize[Y_dir] )*C1.iDimSize[X_dir];
                         }
@@ -688,13 +713,15 @@ int main(int argc, char* argv[])
                                         iPos_six_point[i][Y_dir] = iPos_six_point[i][Y_dir] - C1.iDimSize[Y_dir];
                                 }
                                 if(iPos_six_point[i][Z_dir] < 0 || iPos_six_point[i][Z_dir] >= C1.iDimSize[Z_dir]){
-                                        break;
+                                        P1.ParticleType = 0;
+                                        continue;
                                 }else{
                                         itag_six_point[i] =  iPos_six_point[i][X_dir] + ( iPos_six_point[i][Y_dir] + iPos_six_point[i][Z_dir]*C1.iDimSize[Y_dir] )*C1.iDimSize[X_dir];
                                 }
                         }
 
-                        //--check if a particle collide on solid cell
+
+                        //--count how many point for a seven-point molecule is on solid
                         count_point_on_solid =0;
                         for (int i = 0; i < 6 ; i++){
                                 if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
@@ -705,14 +732,14 @@ int main(int argc, char* argv[])
                                 count_point_on_solid++;
                         }
 
-                        if (count_point_on_solid == 0){
-                                continue;
-                        }else if (count_point_on_solid > 1){
+
+
+                        //--check if a particle collide on solid cell
+                        if (count_point_on_solid > 1){
                                 P1.dPos[X_dir] = old_dPos[X_dir];
                                 P1.dPos[Y_dir] = old_dPos[Y_dir];
                                 P1.dPos[Z_dir] = old_dPos[Z_dir];
                                 P1.time_interval = 0.5 * P1.time_interval;
-                                continue;
                         }else if ( count_point_on_solid == 1){
                                 for (int i = 0; i < 6 ; i++){
                                         if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
@@ -724,31 +751,40 @@ int main(int argc, char* argv[])
                                                                           norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
 
                                 if (C1.iStatus[itag] == iMaskStat){
+
                                         if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
                                                 C1.IonMaskReaction(phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &ReactionExecution  );
                                         }
+
                                         P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
-                                        if ( P1.speed == 0){
-                                                P1.ParticleType = 0;
-                                        }else{
-                                                P1.time_interval = dx/P1.speed;
-                                        }
-                                        continue;
-                                }else if (C1.iStatus[itag] == iSubstrateStat){
+
+                                        if ( P1.speed == 0){P1.ParticleType = 0;
+                                        }else{                            P1.time_interval = dx/P1.speed;}
+
+
+                                }else if ( C1.iStatus[itag] == iSubstrateStat ){
+
                                         if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
 
                                                 if (ReactionExecution == 0){
                                                         P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
-                                                        P1.Vel[X_dir] = P1.speed*norm_surface_N[X_dir];
-                                                        P1.Vel[Y_dir] = P1.speed*norm_surface_N[Y_dir];
-                                                        P1.Vel[Z_dir] = P1.speed*norm_surface_N[Z_dir];
+                                                        P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
+                                                        P1.phi = unif(generator)*2*PI;
+                                                        if( norm_EmitParticle_V[X_dir] == 0 && norm_EmitParticle_V[Y_dir] == 0 ){
+                                                                alpha = 0;
+                                                        }else{
+                                                                alpha = acos(norm_EmitParticle_V[X_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
+                                                        }
+                                                        beta = acos(norm_EmitParticle_V[Z_dir]);
+                                                        P1.Vel[X_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi));
+                                                        P1.Vel[Y_dir] = P1.speed*( sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi));
+                                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta));
                                                         P1.time_interval = dx/P1.speed;
                                                 }else{
                                                         P1.ParticleType = 0;
                                                 }
 
-                                                continue;
                                         }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){
 
                                                 if (P1.ParticleType == iClIonType){
@@ -779,16 +815,13 @@ int main(int argc, char* argv[])
 
                                                 P1.ParticleType = ReflectedParticle;
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
-                                                if ( P1.speed == 0){
-                                                        P1.ParticleType = 0;
-                                                }else{
-                                                        P1.time_interval = dx/P1.speed;
-                                                }
 
-                                                continue;
+                                                if ( P1.speed == 0){  P1.ParticleType = 0;
+                                                }else{                               P1.time_interval = dx/P1.speed;}
+
                                         }else if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
                                                 C1.redeposition(p0_redeposition, EmitParticle, itag, &ReactionExecution, &reaction_index);
-                                                break;
+                                                P1.ParticleType = 0;
                                         }
                                 }
                         }
