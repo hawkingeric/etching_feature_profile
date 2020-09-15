@@ -568,7 +568,7 @@ void cell::IonMaskReaction(vector<double>& phys_sputter_prob, int itag, double E
         double angle_ratio;
         if(E >= 15){
                 EnhanceFactor = sqrt( (E - 15)/(100 - 15) );
-                prob_of_energy = 0.01*EnhanceFactor ;
+                prob_of_energy = 0.00*EnhanceFactor ;
         }else if (E < 15){
                 prob_of_energy = 0.0;
         }
@@ -584,7 +584,9 @@ void cell::IonMaskReaction(vector<double>& phys_sputter_prob, int itag, double E
         }
 
 
-        if (happen_or_not <= prob_of_angle*prob_of_energy){
+
+        if (happen_or_not < prob_of_angle*prob_of_energy){
+
                 #pragma omp atomic
                 cell::dNumMask[itag]--;
                 *ReactionExecution = 1;

@@ -423,8 +423,8 @@ int main(int argc, char* argv[])
         cout << "speed cutoff for SiCl2(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl2gType]        <<" m/s"<<endl;
         cout << "speed cutoff for SiCl3(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl3gType]        <<" m/s"<<endl;
         cout << endl;
-        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumSiClxs, iNumMaterial, PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3,
-                                                               directory+output_file_name, append, file_index );
+        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
+                                     PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3, directory+output_file_name, append, file_index );
 
 
         //--random number generation
@@ -443,31 +443,31 @@ int main(int argc, char* argv[])
         #pragma omp parallel for
         for (int indexParticle = 0;   indexParticle < TotalParticle;   indexParticle++){
 
-                particle P1;                                                                                             //--Generate a particle
+                particle P1;                                            //--Generate a particle
                 P1.setInitialType(ParticleProb_for_incident_particle);  //--choose a particular type of particle
-                double rdd1, rdd2, rdd3;                                                                  //--random number for selecting ion energy and angle
-                int ReactionExecution = 0;                                                            //--determine if a reaction happen
-                int EmitParticle = 0;                                                                          //--index for emitted particle such as SiClx(g)
-                int ReflectedParticle = 0;                                                                //--index for original reflected particle such as Ar*, Cl*
-                int reaction_index = 0;                                                                    //--index for a particular reaction formula
-                double norm_surface_N [3];                                                       //--normalized surface normal vector (x, y, z)
-                double norm_reflected_V [3];                                                     //--normalized reflected velocity vector (x, y, z)
-                double reflected_velocity [3];                                                      //--reflected velocity (x, y, z)
-                double grazing_angle = 0;                                                            //--angle between surface and velocity
-                double incident_angle = 0;                                                           //--angle between normal and velocity
-                int old_iPos [3];                                                                                   //--to record the iPos (x, y, z) before propogation
-                double old_dPos [3];                                                                        //--to record the dPos (x, y, z) before propagation
-                int itag;                                                                                                     //--itag of particle center
+                double rdd1, rdd2, rdd3;                                //--random number for selecting ion energy and angle
+                int ReactionExecution = 0;                              //--determine if a reaction happen
+                int EmitParticle = 0;                                   //--index for emitted particle such as SiClx(g)
+                int ReflectedParticle = 0;                              //--index for original reflected particle such as Ar*, Cl*
+                int reaction_index = 0;                                 //--index for a particular reaction formula
+                double norm_surface_N [3];                              //--normalized surface normal vector (x, y, z)
+                double norm_reflected_V [3];                            //--normalized reflected velocity vector (x, y, z)
+                double reflected_velocity [3];                          //--reflected velocity (x, y, z)
+                double grazing_angle = 0;                               //--angle between surface and velocity
+                double incident_angle = 0;                              //--angle between normal and velocity
+                int old_iPos [3];                                       //--to record the iPos (x, y, z) before propogation
+                double old_dPos [3];                                    //--to record the dPos (x, y, z) before propagation
+                int itag;                                               //--itag of particle center
                 int old_itag;
-                int itag_six_point [6] ;                                                                     //--itag of particle's six neighboring points
-                double dPos_six_point [6][3] ;                                                   //--dPos (x, y, z) of particle's six neighboring points
-                int iPos_six_point [6][3] ;                                                              //--iPos (x, y, z) of particle's siz neighboring points
-                int count_point_on_solid;                                                             //--to count how many point of a seven-point molecule is on solid cell
-                double norm_EmitParticle_V [3];                                             //--normalized velocity for emitted particle
-                double dPos_EmitParticle [3];                                                    //--dPos for emitted particle
-                int iPos_EmitParticle [3];                                                               //--iPos for emitted particle
-                double alpha;                                                                                        //--azimusal angle of surface normal vector
-                double beta;                                                                                           //--polar angle of surface normal vector;
+                int itag_six_point [6] ;                                //--itag of particle's six neighboring points
+                double dPos_six_point [6][3] ;                          //--dPos (x, y, z) of particle's six neighboring points
+                int iPos_six_point [6][3] ;                             //--iPos (x, y, z) of particle's siz neighboring points
+                int count_point_on_solid;                               //--to count how many point of a seven-point molecule is on solid cell
+                double norm_EmitParticle_V [3];                         //--normalized velocity for emitted particle
+                double dPos_EmitParticle [3];                           //--dPos for emitted particle
+                int iPos_EmitParticle [3];                              //--iPos for emitted particle
+                double alpha;                                           //--azimusal angle of surface normal vector
+                double beta;                                            //--polar angle of surface normal vector;
 
                 //--Count total number of particle and write to a file in a vtk format
                 #pragma omp critical
@@ -481,7 +481,7 @@ int main(int argc, char* argv[])
                                         PrintSiCl2 = true;
                                         PrintSiCl3 = true;
                                 }
-                                write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumSiClxs, iNumMaterial,
+                                write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
                                                                 PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3, directory+output_file_name, append, file_index );
                         }
                 }
@@ -601,12 +601,22 @@ int main(int argc, char* argv[])
                                         if( norm_EmitParticle_V[X_dir] == 0 && norm_EmitParticle_V[Y_dir] == 0 ){
                                                 alpha = 0;
                                         }else{
-                                                alpha = acos(norm_EmitParticle_V[X_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  ) );
+                                                if ( norm_EmitParticle_V[X_dir] >= 0){
+                                                        alpha = acos(-norm_EmitParticle_V[Y_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
+                                                }else if ( norm_EmitParticle_V[X_dir] < 0){
+                                                        alpha = -acos(-norm_EmitParticle_V[Y_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
+                                                }
                                         }
                                         beta = acos(norm_EmitParticle_V[Z_dir]);
-                                        P1.Vel[X_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi));
-                                        P1.Vel[Y_dir] = P1.speed*( sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi));
-                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta));
+                                        P1.Vel[X_dir] = P1.speed*( -sin(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)
+                                                                                                  +cos(alpha)*sin(P1.theta)*cos(P1.phi)
+                                                                                                  +sin(alpha)*sin(beta)*cos(P1.theta)                             );
+                                        P1.Vel[Y_dir] = P1.speed*(   cos(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)
+                                                                                                 +sin(alpha)*sin(P1.theta)*cos(P1.phi)
+                                                                                                  -cos(alpha)*sin(beta)*cos(P1.theta)                              );
+                                        P1.Vel[Z_dir] = P1.speed*(   sin(beta)*sin(P1.theta)*sin(P1.phi)
+                                                                                                 +cos(beta)*cos(P1.theta)                                                    );
+                                        P1.time_interval = dx/P1.speed;
                                         EmitParticle = 0;
                                 }
                         }
@@ -752,10 +762,11 @@ int main(int argc, char* argv[])
 
                                 if (C1.iStatus[itag] == iMaskStat){
 
+                                        /*
                                         if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
                                                 C1.IonMaskReaction(phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &ReactionExecution  );
                                         }
-
+                                        */
                                         P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
 
                                         if ( P1.speed == 0){P1.ParticleType = 0;
@@ -771,15 +782,25 @@ int main(int argc, char* argv[])
                                                         P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
                                                         P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
                                                         P1.phi = unif(generator)*2*PI;
-                                                        if( norm_EmitParticle_V[X_dir] == 0 && norm_EmitParticle_V[Y_dir] == 0 ){
+
+                                                        if( norm_surface_N[X_dir] == 0 && norm_surface_N[Y_dir] == 0 ){
                                                                 alpha = 0;
                                                         }else{
-                                                                alpha = acos(norm_EmitParticle_V[X_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
+                                                                if ( norm_surface_N[X_dir] > 0){
+                                                                        alpha = acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                                                                }else if ( norm_surface_N[X_dir] < 0){
+                                                                        alpha = -acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                                                                }
                                                         }
-                                                        beta = acos(norm_EmitParticle_V[Z_dir]);
-                                                        P1.Vel[X_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi));
-                                                        P1.Vel[Y_dir] = P1.speed*( sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi));
-                                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta));
+                                                        beta = acos(norm_surface_N[Z_dir]);
+                                                        P1.Vel[X_dir] = P1.speed*( -sin(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)
+                                                                                                  +cos(alpha)*sin(P1.theta)*cos(P1.phi)
+                                                                                                  +sin(alpha)*sin(beta)*cos(P1.theta)                             );
+                                                        P1.Vel[Y_dir] = P1.speed*(   cos(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)
+                                                                                                 +sin(alpha)*sin(P1.theta)*cos(P1.phi)
+                                                                                                  -cos(alpha)*sin(beta)*cos(P1.theta)                              );
+                                                        P1.Vel[Z_dir] = P1.speed*(   sin(beta)*sin(P1.theta)*sin(P1.phi)
+                                                                                                 +cos(beta)*cos(P1.theta)                                                    );
                                                         P1.time_interval = dx/P1.speed;
                                                 }else{
                                                         P1.ParticleType = 0;
@@ -830,8 +851,8 @@ int main(int argc, char* argv[])
         cout << "Total number of files generated : " << file_index <<endl;
         cout << "Total Particle Number : " << particleNumber << endl;
         file_index++;
-        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumSiClxs, iNumMaterial, PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3,
-                                                               directory+output_file_name, append, file_index );
+        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
+                                     PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3, directory+output_file_name, append, file_index );
 
         /*
         ofstream out1( directory+"number_of_reactions"   );
