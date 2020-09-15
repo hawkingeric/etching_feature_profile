@@ -21,9 +21,9 @@ class cell
                 void surface_normal(int [][3] , int, int, int*, double*, double*, double*, double*, double*);
                 void ClRadicalReaction(vector<double>&, int, int, int*, int*);
                 void redeposition(vector<double>&, int, int, int*, int*);
-                void ArIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int,  int, double, double, int*, int*, int*, int*);
-                void ClIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&,  int, int, double,  double, int*, int*, int*, int*);
+                void ClIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&,  int, int, double, double, int*, int*, int*, int*);
                 void Cl2IonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int, int, double, double, int*, int*, int*, int*);
+                void ArIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int,  int, double, double, int*, int*, int*, int*);
                 void IonMaskReaction(vector<double>&, int, double,  double , int* );
 
 

@@ -4,8 +4,9 @@
 using namespace std;
 
 
-void write_to_vtk(std::string datatype, int cNx, int cNy, int cNz, double delta, int* iStatus, double* dNumMaterial, double** dNumSiClxs, int iNumMaterial,
-                                       bool PrintSi, bool PrintSiCl, bool PrintSiCl2, bool PrintSiCl3, std::string directory, std::string append, int file_index ){
+void write_to_vtk(std::string datatype, int cNx, int cNy, int cNz, double delta, int* iStatus, double* dNumMaterial, double* dNumMask,
+                                       double** dNumSiClxs, int iNumMaterial, bool PrintSi, bool PrintSiCl, bool PrintSiCl2, bool PrintSiCl3,
+                                       std::string directory, std::string append, int file_index ){
 
         string Filename;
         string file_index_name = to_string(file_index);
@@ -75,6 +76,16 @@ void write_to_vtk(std::string datatype, int cNx, int cNy, int cNz, double delta,
                          for(int y = 0; y < cNy; y++){
                                  for(int x = 0; x < cNx; x++){
                                          vtk << dNumMaterial[ x + ( y + z * cNy ) * cNx ] << endl;
+                                 }
+                         }
+                 }
+
+                 vtk << "SCALARS dNumMask float 1" << endl;
+                 vtk << "LOOKUP_TABLE default" << endl;
+                for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << dNumMask[ x + ( y + z * cNy ) * cNx ] << endl;
                                  }
                          }
                  }
