@@ -268,11 +268,11 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                  random_device rd;
                  default_random_engine generator( rd() );  //--random number generator
                  uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
-                 if( unif(generator) <= 0.5 ){
+                 if( unif(generator) < 0.5 ){
                          norm_surface_N[X_dir] = norm_surface_N[X_dir];
                          norm_surface_N[Y_dir] = norm_surface_N[Y_dir];
                          norm_surface_N[Z_dir] = norm_surface_N[Z_dir];
-                 }else if ( 0.5 < unif(generator) && unif(generator) < 1.0){
+                 }else if ( 0.5 <= unif(generator) && unif(generator) < 1.0){
                          norm_surface_N[X_dir] = (-1)*norm_surface_N[X_dir];
                          norm_surface_N[Y_dir] = (-1)*norm_surface_N[Y_dir];
                          norm_surface_N[Z_dir] = (-1)*norm_surface_N[Z_dir];
