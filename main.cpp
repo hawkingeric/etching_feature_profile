@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
                                                                                                      MassSilicon+3*MassChlorine };
 
 
-        int n_for_cosine_law = 50;
+        int n_for_cosine_law = 1;
         double particle_radius_scale = 0.2;
 
         /*Input Json file*/
@@ -640,24 +640,18 @@ int main(int argc, char* argv[])
                         //--check if particle has been deactivated
                         if(P1.ParticleType == 0){
                                 //cout << "P1.ParticleType = 0" << endl;
-
+                                break; //--for test
                                 if (EmitParticle == 0){
                                         break;
                                 }else{
                                         //if (EmitTimes > 0)    break;
                                         P1.ParticleType = EmitParticle;
                                         if (EmitParticle == iSiClgType){
-                                                break; //--for test
                                                 P1.speed = P1.setInitialSpeed( Temperature,   MassSilicon+MassChlorine,   speed_cutoff_for_thermal_paricle[iSiClgType]  );
                                         }else if ( EmitParticle == iSiCl2gType){
-                                                break; //--for test
                                                 P1.speed = P1.setInitialSpeed( Temperature,   MassSilicon+2*MassChlorine,   speed_cutoff_for_thermal_paricle[iSiCl2gType]  );
                                         }else if ( EmitParticle == iSiCl3gType){
-                                                break; //--for test
                                                 P1.speed = P1.setInitialSpeed( Temperature,   MassSilicon+3*MassChlorine,   speed_cutoff_for_thermal_paricle[iSiCl3gType]  );
-                                        }else if ( EmitParticle == iClRadicalType){
-
-                                                P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
                                         }
 
                                         P1.dPos[X_dir] = dPos_EmitParticle[X_dir];
@@ -666,7 +660,7 @@ int main(int argc, char* argv[])
                                         P1.iPos[X_dir] = iPos_EmitParticle[X_dir];
                                         P1.iPos[Y_dir] = iPos_EmitParticle[Y_dir];
                                         P1.iPos[Z_dir] = iPos_EmitParticle[Z_dir];
-                                        /*
+
                                         P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
                                         P1.phi = unif(generator)*2*PI;
                                         if( norm_EmitParticle_V[X_dir] == 0 && norm_EmitParticle_V[Y_dir] == 0 ){
@@ -682,10 +676,8 @@ int main(int argc, char* argv[])
                                         P1.Vel[X_dir] = P1.speed*( -sin(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)+cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(alpha)*sin(beta)*cos(P1.theta)                             );
                                         P1.Vel[Y_dir] = P1.speed*(   cos(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)+sin(alpha)*sin(P1.theta)*cos(P1.phi)-cos(alpha)*sin(beta)*cos(P1.theta)                              );
                                         P1.Vel[Z_dir] = P1.speed*(   sin(beta)*sin(P1.theta)*sin(P1.phi)+cos(beta)*cos(P1.theta)                                                    );
-                                        */
-                                        P1.Vel[X_dir] = P1.speed*norm_EmitParticle_V[X_dir];
-                                        P1.Vel[Y_dir] = P1.speed*norm_EmitParticle_V[Y_dir];
-                                        P1.Vel[Z_dir] = P1.speed*norm_EmitParticle_V[Z_dir];
+
+
                                         P1.time_interval = dx/P1.speed;
                                         EmitParticle = 0;
                                         //EmitTimes++;
@@ -845,18 +837,26 @@ int main(int argc, char* argv[])
 
                                         if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
-                                                P1.ParticleType = 0;
+
                                                 if (ReactionExecution == 0){
-                                                        EmitParticle = iClRadicalType ;
-                                                        dPos_EmitParticle[X_dir] = P1.dPos[X_dir];
-                                                        dPos_EmitParticle[Y_dir] = P1.dPos[Y_dir];
-                                                        dPos_EmitParticle[Z_dir] = P1.dPos[Z_dir];
-                                                        iPos_EmitParticle[X_dir] = P1.iPos[X_dir];
-                                                        iPos_EmitParticle[Y_dir] = P1.iPos[Y_dir];
-                                                        iPos_EmitParticle[Z_dir] = P1.iPos[Z_dir];
-                                                        norm_EmitParticle_V[X_dir] = norm_surface_N[X_dir];
-                                                        norm_EmitParticle_V[Y_dir] = norm_surface_N[Y_dir];
-                                                        norm_EmitParticle_V[Z_dir] = norm_surface_N[Z_dir];
+                                                        P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
+                                                        P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
+                                                        P1.phi = unif(generator)*2*PI;
+                                                        if( norm_surface_N[X_dir] == 0 && norm_surface_N[Y_dir] == 0 ){
+                                                                alpha = 0;
+                                                        }else{
+                                                                if ( norm_surface_N[X_dir] >= 0){
+                                                                        alpha = acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                                                                }else if ( norm_EmitParticle_V[X_dir] < 0){
+                                                                        alpha = -acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                                                                }
+                                                        }
+                                                        beta = acos(norm_surface_N[Z_dir]);
+                                                        P1.Vel[X_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi)                             );
+                                                        P1.Vel[Y_dir] = P1.speed*( sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi)                              );
+                                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta)    );
+                                                }else if (ReactionExecution == 1){
+                                                        P1.ParticleType = 0;
                                                 }
 
                                         }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){
