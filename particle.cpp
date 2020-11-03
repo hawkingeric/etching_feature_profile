@@ -103,28 +103,23 @@ double particle::setInitialSpeed(double temperature, double mass, double v_cut)
 }
 
 
-double particle::setInitialTheta(int type)
+double particle::setInitialTheta_by_Gaussian(double sigma)
 {
+         random_device rd;
+         default_random_engine generator( rd() );
+         uniform_real_distribution<double> unif(0.0, 1.0);
          double incident_angle;
          double center_angle = PI;
-         random_device rd;
-         default_random_engine generator( rd() ); // random number generator
-         uniform_real_distribution<double> unif(0.0, 1.0);  // random number uniform distribution
-         if(type == iArIonType || type == iClIonType || type == iCl2IonType ){  //--For ion particles
-                 double sigma = 0.001;
-                 double p_max = 1/sigma/sqrt(2*PI);
-                 double t_rand, p_rand, prob_density;
-                 double scale = 2.35482; //FWHM = Full width at half maximum = 2 * sqrt( 2 * ln(2)  )
-                 do{
-                         t_rand = unif(generator)*scale*sigma - scale*sigma + center_angle;
-                         prob_density = 1/sigma/sqrt(2*PI)*exp(-0.5*pow(  (t_rand-center_angle)/sigma,2.0 )  ); //--Gaussian distribution probability density function
-                         p_rand = unif(generator)*p_max;
-                 }while (prob_density < p_rand);
-                 incident_angle = t_rand;
-         }else if (  type == iClRadicalType ){   //--For particles withour charge
-                 incident_angle = unif(generator)*PI/2+PI/2;          //--generate the random number between PI/2 to PI for theta
-
-         }
+         double p_max = 1/sigma/sqrt(2*PI);
+         double t_rand, p_rand, prob_density;
+         double scale = 2.35482; //--FWHM = Full width at half maximum = 2 * sqrt( 2 * ln(2)  )
+         do{
+                 t_rand = unif(generator)*scale*sigma - scale*sigma + center_angle;
+                 //--Gaussian distribution probability density function
+                 prob_density = 1/sigma/sqrt(2*PI)*exp(-0.5*pow(  (t_rand-center_angle)/sigma,2.0 )  );
+                 p_rand = unif(generator)*p_max;
+         }while (prob_density < p_rand);
+         incident_angle = t_rand;
          return incident_angle;
 }
 

@@ -112,6 +112,8 @@ void cell::redeposition(vector<double>& p0_redeposition, int AdsorbParticle, int
                         cell::dNumMaterial[itag]++;
                         *ReactionExecution = 1;
                         *reaction_index = 8;
+                }else{
+                        *ReactionExecution = 0;
                 }
         }else if ( AdsorbParticle == iSiCl2gType ){
                 if(  happen_or_not < p0_redeposition[1] ){
@@ -123,6 +125,8 @@ void cell::redeposition(vector<double>& p0_redeposition, int AdsorbParticle, int
                         cell::dNumMaterial[itag]++;
                         *ReactionExecution = 1;
                         *reaction_index = 8;
+                }else{
+                        *ReactionExecution = 0;
                 }
         }else if (  AdsorbParticle == iSiCl3gType ){
                 if (   happen_or_not < p0_redeposition[2] ){
@@ -134,6 +138,8 @@ void cell::redeposition(vector<double>& p0_redeposition, int AdsorbParticle, int
                         cell::dNumMaterial[itag]++;
                         *ReactionExecution = 1;
                         *reaction_index = 8;
+                }else{
+                        *ReactionExecution = 0;
                 }
         }
 }

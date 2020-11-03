@@ -9,7 +9,7 @@ class particle
         public:
                 void setInitialPosition(double, double, double, double, double, double);
                 double setInitialSpeed(double, double, double);
-                double setInitialTheta(int);
+                double setInitialTheta_by_Gaussian(double);
                 double setReemitTheta(int);
                 void setInitialType(std::vector<double>&);
                 void reflected_velocity_with_new_energy(double*, double*, double*);

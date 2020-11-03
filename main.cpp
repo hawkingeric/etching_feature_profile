@@ -34,37 +34,41 @@ int main(int argc, char* argv[])
 {
 
 
-
-
         /* Declaration*/
-        string inputJsonFile, tmpString, directory, boundary_condition, output_type, append, vtkDataType, geometry, meshfile, meshDATASET ;
-        string ion_energy_data_file, ion_angle_data_file, cumulativeflux_ArIon_file, cumulativeflux_ClIon_file, cumulativeflux_Cl2Ion_file;
-        string output_file_name, IEADF_data_directory;
-        int TotalParticle, timestep_number, output_file_number, Nx, Ny, Nz, searching_radius, searching_number ;
-        int iSubstrateThickZ, iMaskThickZ, iTrenchWidthX,  iMaskWidthX, iNumMaterial, iNumMask, particleNumber, file_index, frequency ;
-        bool ION_THETA_GAUSSIAN, PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3 ;
-        double dx, dy, dz, Lx, Ly, Lz, dSubstrateThickZ, dMaskThickZ, dTrenchWidthX, dMaskWidthX, Temperature ;
-        double dClRadicalFlux, dSigFlux, dSiClgFlux, dSiCl2gFlux, dSiCl3gFlux, dSiCl4gFlux, dClIonFlux, dCl2IonFlux, dArIonType;
-        vector<double> cumulativeflux_ArIon, cumulativeflux_ClIon, cumulativeflux_Cl2Ion, ion_energy, ion_angle;
+        string inputJsonFile, tmpString, geometry, meshfile;
+        double dx, dy, dz;
+        int Nx, Ny, Nz, iSubstrateThickZ, iMaskThickZ, iTrenchWidthX, iMaskWidthX, iNumMaterial, iNumMask;
+        int searching_radius, searching_range, searching_number ;
+
+
+        string output_type, append, vtkDataType, directory, output_file_name;
+        bool PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3 ;
+        int output_file_number;
+
+
         vector<double> phys_sputter_prob, chem_sputter_prob;
         vector<double> p0_ClRadicalReaction, p0_redeposition, p0_ClIonReaction, p0_Cl2IonReaction, p0_ArIonReaction;
         vector<double> Eth_ClIonReaction, Eth_Cl2IonReaction, Eth_ArIonReaction;
-        vector<int> type_ClIonReaction, type_Cl2IonReaction, type_ArIonReaction ;
         double E0_ClIonReaction, E0_Cl2IonReaction, E0_ArIonReaction;
+        vector<int> type_ClIonReaction, type_Cl2IonReaction, type_ArIonReaction ;
+        string IEADF_data_directory, ion_energy_data_file, ion_angle_data_file;
+        string cumulativeflux_ClIon_file, cumulativeflux_Cl2Ion_file,  cumulativeflux_ArIon_file ,  boundary_condition;
+        vector<double> cumulativeflux_ArIon, cumulativeflux_ClIon, cumulativeflux_Cl2Ion, ion_energy, ion_angle;
+        bool NEUTRAL_THETA_GAUSSIAN, ION_THETA_GAUSSIAN;
+        double Temperature, dClRadicalFlux, dSigFlux, dSiClgFlux, dSiCl2gFlux, dSiCl3gFlux, dSiCl4gFlux, dClIonFlux, dCl2IonFlux, dArIonType ;
+        double neutral_gaussian_sigma, ion_gaussian_sigma, particle_size_factor;
+        int n_for_cosine_law, timestep_number;
+
+
+
+        double Lx, Ly, Lz ;
         int reaction_number[26] = {0};  //--for reaction index from 1 - 26
 
-         /* Initialization*/
-        int ThermalParticleTypes = 6; //--Total number of thermal species, here we include Cl radical, Si(g), SiCl(g), SiCl2(g), and SiCl3(g)
-        //                                                                                                                          Cl                     Si                    SiCl               SiCl2              SiCl3                    Cl+                Cl2+              Ar+
-        //vector<double> ParticleProb_for_inciden_particle = {0.92085,     0.00000,    0.00000,      0.00000,     0.00000,         0.04186,     0.03474,     0.00255};
-
-        double speed_cutoff_for_thermal_paricle [ThermalParticleTypes]; //--Array to store pre-calculated cutoff speed
-        vector<double> mass_thermal_particle = { 0.0, MassChlorine, MassSilicon, MassSilicon+MassChlorine, MassSilicon+2*MassChlorine,
-                                                                                                     MassSilicon+3*MassChlorine };
 
 
-        int n_for_cosine_law = 1;
-        double particle_radius_scale = 0.2;
+
+
+
 
         /*Input Json file*/
         inputJsonFile = "none" ;
@@ -114,7 +118,10 @@ int main(int argc, char* argv[])
 	                            //meshfile = "none" ;
 		                        exit( 1 ) ;
 	                    }
+	                    //--for structured grid, dx = dy = dz
 	                    dx                                 = config["cell_size"] ; //--unit : m, x length per cell size
+	                    dy                                 = config["cell_size"] ; //--unit : m, y length per cell size
+	                    dz                                 = config["cell_size"] ; //--unit : m, z length per cell size
 	                    Nx                                = config["domain_size_x"]; //--number of cells in x direction
                         Ny                                = config["domain_size_y"]; //--number of cells in y direction
                         Nz                                = config["domain_size_z"]; //--number of cells in z direction
@@ -125,8 +132,37 @@ int main(int argc, char* argv[])
                         iNumMaterial        = config["atom_number_in_material"];
                         iNumMask              = config["atom_number_in_mask"];
                         searching_radius = config["searching_radius"] ;
+                        searching_range = 2*searching_radius+1;
+                        searching_number = pow(  searching_range, 3);
+
                 }else{
 	                    cout << "No mesh tag in input file! " << endl ;
+	                    exit( 1 ) ;
+                }
+
+
+                //--output_setting tag reading
+                if ( configuration_json.find( "output_setting" ) != configuration_json.end() ){
+                        json config = configuration_json[ "output_setting" ] ;
+                        if ( config[ "type_name" ] == "TECPLOT" ){
+                                output_type =	"TECPLOT" ;
+                        }else if ( config[ "type_name" ] == "VTK" ){
+	                            output_type	= "VTK" ;
+	                            append = ".vtk";
+	                    }else{
+                                output_type	= "VTK" ;
+                                append = ".vtk";
+	                    }
+	                    vtkDataType = config["vtkDataType"] ;
+	                    directory = config["output_file_directory"] ;
+	                    output_file_name = config["output_file_name"];
+                        PRINT_SI = config["PRINT_SI"];
+                        PRINT_SICl = config["PRINT_SICl"];
+                        PRINT_SICl2 = config["PRINT_SICl2"];
+                        PRINT_SICl3 = config["PRINT_SICl3"];
+                        output_file_number = config["output_file_number"] ;
+                }else{
+	                    cout << "No output_setting tag in input file! " << endl ;
 	                    exit( 1 ) ;
                 }
 
@@ -156,42 +192,31 @@ int main(int argc, char* argv[])
                 }
 
 
-                //--output_setting tag reading
-                if ( configuration_json.find( "output_setting" ) != configuration_json.end() ){
-                        json config = configuration_json[ "output_setting" ] ;
-                        if ( config[ "type_name" ] == "TECPLOT" ){
-                                output_type =	"TECPLOT" ;
-                        }else if ( config[ "type_name" ] == "VTK" ){
-	                            output_type	= "VTK" ;
-	                            append = ".vtk";
-	                    }else{
-                                output_type	= "VTK" ;
-                                append = ".vtk";
-	                    }
-	                    vtkDataType = config["vtkDataType"] ;
-	                    directory = config["output_file_directory"] ;
-	                    output_file_name = config["output_file_name"];
-                        output_file_number = config["output_file_number"] ;
-                }else{
-	                    cout << "No output_setting tag in input file! " << endl ;
-	                    exit( 1 ) ;
-                }
 
                 //--simulation_conditions tag reading
                 if ( configuration_json.find( "simulation_conditions" ) != configuration_json.end() ){
                         json config = configuration_json[ "simulation_conditions" ] ;
                         //cout << config << endl;
-
-                        if ( config.find( "timestep_number" ) != config.end() ){
-	                            timestep_number = config[ "timestep_number" ] ;
-                        }
-	                    TotalParticle = config["TotalParticle"];
-
                         if ( config.find( "boundary_condition" ) != config.end() ){
                                 boundary_condition = config["boundary_condition"];
 	                    }else{
 	                            boundary_condition = "periodic" ;
 	                    }
+
+                        IEADF_data_directory = config["IEADF_data_directory"];
+                         /*Read IEADF data*/
+                        ion_energy_data_file =            IEADF_data_directory + "energy.dat";
+                        ion_angle_data_file =               IEADF_data_directory + "angle.dat";
+                        cumulativeflux_ClIon_file =   IEADF_data_directory + "cumulativefluxClIon_data.dat";
+                        cumulativeflux_Cl2Ion_file = IEADF_data_directory + "cumulativefluxCl2Ion_data.dat";
+                        cumulativeflux_ArIon_file =   IEADF_data_directory + "cumulativefluxArIon_data.dat";
+                        ion_energy                         = read_data(   ion_energy_data_file    );
+                        ion_angle                            = read_data(   ion_angle_data_file    );
+                        cumulativeflux_ClIon    = read_data(   cumulativeflux_ClIon_file   );
+                        cumulativeflux_Cl2Ion = read_data(   cumulativeflux_Cl2Ion_file  );
+                        cumulativeflux_ArIon   = read_data(   cumulativeflux_ArIon_file   );
+	                    NEUTRAL_THETA_GAUSSIAN = config["NEUTRAL_THETA_GAUSSIAN"];
+	                    ION_THETA_GAUSSIAN = config["ION_THETA_GAUSSIAN"];
 	                    Temperature = config["Temperature"];
 	                    dClRadicalFlux =config["dClRadicalFlux"];
 	                    dSigFlux = config["dSigFlux"];
@@ -202,12 +227,16 @@ int main(int argc, char* argv[])
                         dClIonFlux = config["dClIonFlux"];
                         dCl2IonFlux = config["dCl2IonFlux"];
                         dArIonType = config["dArIonFlux"];
-                        IEADF_data_directory = config["IEADF_data_directory"];
-                        ION_THETA_GAUSSIAN = config["ION_THETA_GAUSSIAN"];
-                        PrintSi = config["PrintSi"];
-                        PrintSiCl = config["PrintSiCl"];
-                        PrintSiCl2 = config["PrintSiCl2"];
-                        PrintSiCl3 = config["PrintSiCl3"];
+
+
+                        neutral_gaussian_sigma = config["neutral_gaussian_sigma"];
+                        ion_gaussian_sigma = config["ion_gaussian_sigma"];
+                        particle_size_factor = config["particle_size_factor"];
+
+                        n_for_cosine_law = config["n_for_cosine_law"];
+                        if ( config.find( "timestep_number" ) != config.end() ){
+	                            timestep_number = config[ "timestep_number" ] ;
+                        }
                 }else{
                         cout << "No simulation_conditions tag in input file! " << endl ;
 	                    exit( 1 ) ;
@@ -231,81 +260,61 @@ int main(int argc, char* argv[])
                 cout << "  atom_number_in_mask          =    " << iNumMask << endl;
                 cout << "  searching_radius             =    " << searching_radius << endl;
                 cout << endl;
-                cout << "Output:" << endl ;
+                cout << "Output setting:" << endl ;
                 cout << "  form                         =    " << output_type << endl ;
                 cout << "  vtkDataType                  =    " << vtkDataType << endl ;
-                cout <<"  output_file_directory        =    "<< directory << endl ;
-                cout <<"  output_file_name             =    "<< output_file_name << endl ;
+                cout << "  output_file_directory        =    "<< directory << endl ;
+                cout << "  output_file_name             =    "<< output_file_name << endl ;
                 cout << "  output_file_number           =    "<< output_file_number << endl;
+                cout << "  PRINT_SI                     =    " << PRINT_SI << endl ;
+                cout << "  PRINT_SICl                   =    " << PRINT_SICl << endl ;
+                cout << "  PRINT_SICl2                  =    " << PRINT_SICl2 << endl ;
+                cout << "  PRINT_SICl3                  =    " << PRINT_SICl3 << endl ;
                 cout << endl;
                 cout << "Simulation conditions:" << endl ;
-                cout << "  TotalParticle                =    " << TotalParticle << endl ;
                 cout << "  timestep_number              =    " << timestep_number << endl ;
                 cout << "  Boundary condition           =    " << boundary_condition << endl;
                 cout << "  Temperature                  =    "  << Temperature << endl;
+                cout << "  Cl radical flux              =    " << dClRadicalFlux << endl;
+	            cout << "  Cl ion flux                  =    " <<        dClIonFlux << endl;
+                cout << "  Cl2+ ion flux                =    " << dCl2IonFlux << endl;
+                cout <<  "  Ar ion flux                  =    " <<    dArIonType << endl;
                 cout << "  IEADF_data_directory         =    " << IEADF_data_directory << endl;
+                cout << "  NEUTRAL_THETA_GAUSSIAN       =    " << NEUTRAL_THETA_GAUSSIAN << endl;
+                cout << "  neutral_gaussian_sigma       =    " << neutral_gaussian_sigma << endl;
                 cout << "  ION_THETA_GAUSSIAN           =    " << ION_THETA_GAUSSIAN << endl;
-                cout << "  PrintSi                      =    " << PrintSi << endl ;
-                cout << "  PrintSiCl                    =    " << PrintSiCl << endl ;
-                cout << "  PrintSiCl2                   =    " << PrintSiCl2 << endl ;
-                cout << "  PrintSiCl3                   =    " << PrintSiCl3 << endl ;
+                cout << "  ion_gaussian_sigma           =    " << ion_gaussian_sigma << endl;
+                cout << "  n for cosine law             =    " <<  n_for_cosine_law <<endl;
+                cout << "  particle size factor       =    " <<  particle_size_factor <<endl;
                 cout << endl;
-        }
+        }//--End of reading and printing json file
 
 
 
-        /*Read IEADF data*/
-        ion_energy_data_file =            IEADF_data_directory + "energy.dat";
-        ion_angle_data_file =               IEADF_data_directory + "angle.dat";
-        cumulativeflux_ClIon_file =   IEADF_data_directory + "cumulativefluxClIon_data.dat";
-        cumulativeflux_Cl2Ion_file = IEADF_data_directory + "cumulativefluxCl2Ion_data.dat";
-        cumulativeflux_ArIon_file =   IEADF_data_directory + "cumulativefluxArIon_data.dat";
-        ion_energy                         = read_data(   ion_energy_data_file    );
-        ion_angle                            = read_data(   ion_angle_data_file    );
-        cumulativeflux_ClIon    = read_data(   cumulativeflux_ClIon_file   );
-        cumulativeflux_Cl2Ion = read_data(   cumulativeflux_Cl2Ion_file  );
-        cumulativeflux_ArIon   = read_data(   cumulativeflux_ArIon_file   );
 
-        /*Initialization for file output*/
-        file_index = 0;
-        frequency = TotalParticle/output_file_number;
-        particleNumber = 0;
 
-        /* Pre-calculation of speed cutoff and time interval for each particle type */
-        speed_cutoff_for_thermal_paricle[iClRadicalType] = calc_v_cut(  mass_thermal_particle.at(iClRadicalType),   Temperature  );
-        speed_cutoff_for_thermal_paricle[iSigType]              = calc_v_cut(  mass_thermal_particle.at(iSigType),                Temperature  );
-        speed_cutoff_for_thermal_paricle[iSiClgType]          = calc_v_cut(  mass_thermal_particle.at(iSiClgType),           Temperature  );
-        speed_cutoff_for_thermal_paricle[iSiCl2gType]       = calc_v_cut(  mass_thermal_particle.at(iSiCl2gType),         Temperature  );
-        speed_cutoff_for_thermal_paricle[iSiCl3gType]       = calc_v_cut(  mass_thermal_particle.at(iSiCl3gType),         Temperature  );
 
-        /*Pre-calculation for surface sites*/
-        int searching_range = 2*searching_radius+1;
-        searching_number = pow(  searching_range, 3);
-        //cout << searching_number << endl;
-        //cin.get();
-        int searching_index [searching_number][3];
-        for (int k = 0; k < searching_range; k++){
-                for (int j = 0; j < searching_range; j++){
-                        for(int i = 0; i < searching_range; i++){
-                                searching_index[i+(j+k*searching_range )*searching_range ][0] = i - searching_radius;
-                                searching_index[i+(j+k*searching_range )*searching_range ][1] = j - searching_radius;
-                                searching_index[i+(j+k*searching_range )*searching_range ][2] = k - searching_radius;
-                        }
-                }
-        }
+
+
+
+
+
+
+
+
 
         /* Initialization for cell */
         cell C1;
         if ( meshfile == "none" ){
-                dy = dx; //--y length per cell size
-                dz = dx; //--z length per cell size
+                //dy = dx; //--y length per cell size
+                //dz = dx; //--z length per cell size
                 Lx = Nx*dx;
                 Ly = Ny*dy;
                 Lz = Nz*dz;
-                dSubstrateThickZ = iSubstrateThickZ*dz;
-                dMaskThickZ = iMaskThickZ*dz;
-                dTrenchWidthX = iTrenchWidthX*dx;
-                dMaskWidthX = iMaskWidthX*dx;
+                //dSubstrateThickZ = iSubstrateThickZ*dz;
+                //dMaskThickZ = iMaskThickZ*dz;
+                //dTrenchWidthX = iTrenchWidthX*dx;
+                //dMaskWidthX = iMaskWidthX*dx;
                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
 
 
@@ -349,7 +358,7 @@ int main(int argc, char* argv[])
                                 istringstream delim_data_input(  data  );
                                 delim_data_input >> buffer_string_line;
                                 if( buffer_string_line == "DATASET")    delim_data_input >> buffer_string_line;
-                                meshDATASET =  buffer_string_line;
+                                string meshDATASET =  buffer_string_line;
                                 cout << "mesh DATASET = " << meshDATASET<< endl;
                                 delim_data_input.clear();
                                 getline(in, data);
@@ -456,37 +465,29 @@ int main(int argc, char* argv[])
 	            }
 	            in.close();
         }
-        cout << endl;
-        cout << "GENERAL INFORMATION : " << endl;
-        cout << "meshfile is read from " << meshfile << endl ;
-        cout << "Nx = "<<Nx<<", Lx = " << Lx <<endl;
-        cout << "Ny = "<<Ny<<", Ly = " << Ly <<endl;
-        cout << "Nz = "<<Nz<<", Lz = " << Lz <<endl;
-        cout << "speed cutoff for Cl radical = " << speed_cutoff_for_thermal_paricle[iClRadicalType] <<" m/s"<<endl;
-        cout << "speed cutoff for Si(g) = "           << speed_cutoff_for_thermal_paricle[iSigType]              <<" m/s"<<endl;
-        cout << "speed cutoff for SiCl(g) = "      << speed_cutoff_for_thermal_paricle[iSiClgType]          <<" m/s"<<endl;
-        cout << "speed cutoff for SiCl2(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl2gType]        <<" m/s"<<endl;
-        cout << "speed cutoff for SiCl3(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl3gType]        <<" m/s"<<endl;
-        cout << endl;
-        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
-                                     PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3, directory+output_file_name, append, file_index );
 
 
-        //--random number generation
+
+
+        /*random number generation*/
         random_device rd;
         default_random_engine generator( rd() );  //--random number generator
         uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
 
 
-        /*particle size*/
-        double dx_particle = particle_radius_scale*dx;
-        double dy_particle = particle_radius_scale*dy;
-        double dz_particle = particle_radius_scale*dz;
-        double six_point_particle [6][3] = {  {-1, 0, 0}, {+1, 0, 0}, {0, -1, 0}, {0, +1, 0}, {0, 0, -1}, {0, 0, +1} };
+        /* Pre-calculation of speed cutoffe */
+        int ThermalParticleTypes = 6; //--Total number of thermal species, here we include Cl radical, Si(g), SiCl(g), SiCl2(g), and SiCl3(g)
+        double speed_cutoff_for_thermal_paricle [ThermalParticleTypes]; //--Array to store pre-calculated cutoff speed
+        speed_cutoff_for_thermal_paricle[iClRadicalType] = calc_v_cut(  MassChlorine, Temperature  );
+        speed_cutoff_for_thermal_paricle[iSigType]              = calc_v_cut(  MassSilicon, Temperature  );
+        speed_cutoff_for_thermal_paricle[iSiClgType]          = calc_v_cut(  MassSilicon+MassChlorine, Temperature  );
+        speed_cutoff_for_thermal_paricle[iSiCl2gType]       = calc_v_cut(  MassSilicon+2*MassChlorine, Temperature  );
+        speed_cutoff_for_thermal_paricle[iSiCl3gType]       = calc_v_cut(  MassSilicon+3*MassChlorine, Temperature  );
 
 
-        vector<double> ParticleProb_for_incident_particle;
+         /* Pre-calculation for particle generation probability */
         double TotalFlux = dClRadicalFlux+dSigFlux+dSiClgFlux+dSiCl2gFlux+dSiCl3gFlux+dSiCl4gFlux+dClIonFlux+dCl2IonFlux+dArIonType;
+        vector<double> ParticleProb_for_incident_particle;
         ParticleProb_for_incident_particle.push_back(dClRadicalFlux/TotalFlux);
         ParticleProb_for_incident_particle.push_back(dSigFlux/TotalFlux);
         ParticleProb_for_incident_particle.push_back(dSiClgFlux/TotalFlux);
@@ -498,9 +499,72 @@ int main(int argc, char* argv[])
         ParticleProb_for_incident_particle.push_back(dArIonType/TotalFlux);
 
 
+        /*Pre-calculation of particle size and initialization of six point particle*/
+        double six_point_particle [6][3] = {  {-1, 0, 0}, {+1, 0, 0}, {0, -1, 0}, {0, +1, 0}, {0, 0, -1}, {0, 0, +1} };
+        double dx_particle, dy_particle, dz_particle;
+        dx_particle = particle_size_factor*dx;
+        dy_particle = particle_size_factor*dy;
+        dz_particle = particle_size_factor*dz;
+
+
+        /*Pre-calculation for surface sites*/
+        int searching_index [searching_number][3];
+        for (int k = 0; k < searching_range; k++){
+                for (int j = 0; j < searching_range; j++){
+                        for(int i = 0; i < searching_range; i++){
+                                searching_index[i+(j+k*searching_range )*searching_range ][0] = i - searching_radius;
+                                searching_index[i+(j+k*searching_range )*searching_range ][1] = j - searching_radius;
+                                searching_index[i+(j+k*searching_range )*searching_range ][2] = k - searching_radius;
+                        }
+                }
+        }
+
+
+        /*Pre-calculation of total particle number, time interval,  and output frequency*/
+        double Gamma_t = (dClRadicalFlux + dClIonFlux + dCl2IonFlux + dArIonType)*1E4 ; //--convert unit from cm^-2 to m^-2
+        double flux_area = Lx*Ly;
+        double total_time;
+        double time_interval = 1/Gamma_t/flux_area;
+        int TotalParticle;
+        string yes_or_no = "yes";
+        cout  << "The area of incidence (A) = " << flux_area << " m^2" << endl;
+        cout << "The total flux (Gamma_t) = "<< Gamma_t << " m^-2 s^-1" << endl;
+        //cout << "The number of atoms in a cell (Ns) = " << iNumMaterial << endl;
+        cout << "The time interval between steps (dt) = " << "1/(Gamma_t*A) = " << time_interval << endl;
+        do{
+                cout << "How many seconds in real time would you like to simulate? " ;
+                cin >> total_time;
+                TotalParticle = int(total_time/time_interval);
+                cout << "The total number of steps in the simulation will be : " << TotalParticle << endl;
+                cout << "Is that OK with you (yes/no)? " ;
+                cin >> yes_or_no;
+        } while ( yes_or_no == "no");
+        int file_index = 0;
+        int frequency = int(TotalParticle/output_file_number);
+        int particleNumber = 0;
+        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
+                                     PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+output_file_name, append, file_index );
+
+
+
+
+        /*
+        cout << endl;
+        cout << "GENERAL INFORMATION : " << endl;
+        cout << "meshfile is read from " << meshfile << endl ;
+        cout << "Nx = "<<Nx<<", Lx = " << Lx <<endl;
+        cout << "Ny = "<<Ny<<", Ly = " << Ly <<endl;
+        cout << "Nz = "<<Nz<<", Lz = " << Lz <<endl;
+        cout << "speed cutoff for Cl radical = " << speed_cutoff_for_thermal_paricle[iClRadicalType] <<" m/s"<<endl;
+        cout << "speed cutoff for Si(g) = "           << speed_cutoff_for_thermal_paricle[iSigType]              <<" m/s"<<endl;
+        cout << "speed cutoff for SiCl(g) = "      << speed_cutoff_for_thermal_paricle[iSiClgType]          <<" m/s"<<endl;
+        cout << "speed cutoff for SiCl2(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl2gType]        <<" m/s"<<endl;
+        cout << "speed cutoff for SiCl3(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl3gType]        <<" m/s"<<endl;
+        */
 
         #pragma omp parallel for
         for (int indexParticle = 0;   indexParticle < TotalParticle;   indexParticle++){
+
 
 
                 particle P1;                                            //--Generate a particle
@@ -537,98 +601,59 @@ int main(int argc, char* argv[])
                         if(  particleNumber%frequency == 0  ){
                                 file_index++;
                                 if (file_index == output_file_number){
-                                        PrintSi = true;
-                                        PrintSiCl = true;
-                                        PrintSiCl2 = true;
-                                        PrintSiCl3 = true;
+                                        PRINT_SI = true;
+                                        PRINT_SICl = true;
+                                        PRINT_SICl2 = true;
+                                        PRINT_SICl3 = true;
                                 }
                                 write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
-                                                                PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3, directory+output_file_name, append, file_index );
+                                                                PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+output_file_name, append, file_index );
                         }
                 }
 
                 if (P1.ParticleType == 0)    continue;
 
-                switch(P1.ParticleType){
-                        case iClRadicalType:
-                                P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
+                if ( P1.ParticleType == iClRadicalType ){
+                        P1.mass = MassChlorine;
+                        P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
+                        P1.energy = 0.5 * P1.mass * P1.speed * P1.speed; //--unit: Joule
+                        if ( NEUTRAL_THETA_GAUSSIAN == true){
+                                P1.theta = P1.setInitialTheta_by_Gaussian(neutral_gaussian_sigma); //--unit: radian
+                        }else if ( NEUTRAL_THETA_GAUSSIAN == false){
+                                P1.theta = unif(generator)*PI/2+PI/2;          //--generate the random number between PI/2 to PI for theta
+                        }
+                }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
+                        if ( P1.ParticleType == iClIonType){
                                 P1.mass = MassChlorine;
-                                P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
-                                P1.energy = 0.5 * P1.mass * P1.speed * P1.speed; //--unit: Joule
-                                P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
-                                P1.phi = unif(generator)*2*PI; //--unit: radian
-                                break;
-
-                        case iClIonType:
-                                P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
-                                P1.mass = MassChlorine;
-                                rdd1 = unif(generator);
-                                rdd2 = unif(generator);
-                                rdd3 = unif(generator);
-                                if ( ION_THETA_GAUSSIAN == true){
-                                        P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
-                                        P1.phi = unif(generator)*2*PI; //--unit: radian
-                                }
+                        }else if ( P1.ParticleType == iCl2IonType){
+                                P1.mass = MassChlorine*2;
+                        }else if (  P1.ParticleType == iArIonType){
+                                P1.mass = MassArgon;
+                        }
+                        rdd1 = unif(generator);
+                        rdd2 = unif(generator);
+                        rdd3 = unif(generator);
+                        if ( ION_THETA_GAUSSIAN == true){
+                                P1.theta = P1.setInitialTheta_by_Gaussian(ion_gaussian_sigma); //--unit: radian
+                        }else if ( ION_THETA_GAUSSIAN == false){
                                 for(int i = 0;    i < cumulativeflux_ClIon.size()-1;     i++){
                                         if  (  rdd1 >= cumulativeflux_ClIon[i] && rdd1 < cumulativeflux_ClIon[i+1]  ){
-                                                if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
-                                                        P1.phi = unif(generator)*2*PI; //--unit: radian
-                                                }
-                                                P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
-                                                P1.speed = sqrt(2*P1.energy/P1.mass);
+                                                P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
                                                 break;
                                         }
                                 }
-                                break;
+                        }
+                        for(int i = 0;    i < cumulativeflux_ClIon.size()-1;     i++){
+                                if  (  rdd1 >= cumulativeflux_ClIon[i] && rdd1 < cumulativeflux_ClIon[i+1]  ){
+                                        P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
+                                        break;
+                                }
+                        }
+                        P1.speed = sqrt(2*P1.energy/P1.mass);
 
-                        case iCl2IonType:
-                                P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
-                                P1.mass = MassChlorine*2;
-                                rdd1 = unif(generator);
-                                rdd2 = unif(generator);
-                                rdd3 = unif(generator);
-                                if ( ION_THETA_GAUSSIAN == true){
-                                        P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
-                                        P1.phi = unif(generator)*2*PI; //--unit: radian
-                                }
-                                for(int i = 0;    i < cumulativeflux_Cl2Ion.size()-1;     i++){
-                                        if(  rdd1 >= cumulativeflux_Cl2Ion[i] && rdd1 <  cumulativeflux_Cl2Ion[i+1]  ){
-                                                if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
-                                                        P1.phi = unif(generator)*2*PI; //--unit: radian
-                                                }
-                                                P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
-                                                P1.speed = sqrt(2*P1.energy/P1.mass);
-                                                break;
-                                        }
-                                }
-                                break;
-
-                        case  iArIonType:
-                                P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
-                                P1.mass = MassArgon;
-                                rdd1 = unif(generator);
-                                rdd2 = unif(generator);
-                                rdd3 = unif(generator);
-                                if ( ION_THETA_GAUSSIAN == true){
-                                        P1.theta = P1.setInitialTheta(P1.ParticleType); //--unit: radian
-                                        P1.phi = unif(generator)*2*PI; //--unit: radian
-                                }
-                                for(int i = 0;  i <  cumulativeflux_ArIon.size()-1;  i++){
-                                        if  (  rdd1 >= cumulativeflux_ArIon[i] && rdd1 < cumulativeflux_ArIon[i+1]  ){
-                                                if ( ION_THETA_GAUSSIAN == false){
-                                                        P1.theta =(  ion_angle[i] + rdd2*(ion_angle[i+1] - ion_angle[i])  )*PI/180+PI; //--unit: radian
-                                                        P1.phi = unif(generator)*2*PI; //--unit: radian
-                                                }
-                                                P1.energy = (  ion_energy[i] + rdd3*(ion_energy[i+1] - ion_energy[i]) )/Joule_to_eV;//--unit: Joule
-                                                P1.speed = sqrt(2*P1.energy/P1.mass);
-                                                break;
-                                        }
-                                }
-                                break;
                 }
-
+                P1.phi = unif(generator)*2*PI; //--unit: radian
+                P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
                 P1.time_interval = dx/P1.speed;
                 P1.Vel[X_dir] = P1.speed*sin(P1.theta)*cos(P1.phi);
                 P1.Vel[Y_dir] = P1.speed*sin(P1.theta)*sin(P1.phi);
@@ -639,8 +664,7 @@ int main(int argc, char* argv[])
 
                         //--check if particle has been deactivated
                         if(P1.ParticleType == 0){
-                                //cout << "P1.ParticleType = 0" << endl;
-                                break; //--for test
+
                                 if (EmitParticle == 0){
                                         break;
                                 }else{
@@ -666,16 +690,29 @@ int main(int argc, char* argv[])
                                         if( norm_EmitParticle_V[X_dir] == 0 && norm_EmitParticle_V[Y_dir] == 0 ){
                                                 alpha = 0;
                                         }else{
+                                                //alpha = acos(norm_EmitParticle_V[X_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
+
                                                 if ( norm_EmitParticle_V[X_dir] >= 0){
                                                         alpha = acos(-norm_EmitParticle_V[Y_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
                                                 }else if ( norm_EmitParticle_V[X_dir] < 0){
                                                         alpha = -acos(-norm_EmitParticle_V[Y_dir] / sqrt( pow(norm_EmitParticle_V[X_dir],2.0)+pow(norm_EmitParticle_V[Y_dir],2.0)  )   );
                                                 }
+
                                         }
                                         beta = acos(norm_EmitParticle_V[Z_dir]);
+
+                                        //--Use the formula that I derived
                                         P1.Vel[X_dir] = P1.speed*( -sin(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)+cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(alpha)*sin(beta)*cos(P1.theta)                             );
                                         P1.Vel[Y_dir] = P1.speed*(   cos(alpha)*cos(beta)*sin(P1.theta)*sin(P1.phi)+sin(alpha)*sin(P1.theta)*cos(P1.phi)-cos(alpha)*sin(beta)*cos(P1.theta)                              );
                                         P1.Vel[Z_dir] = P1.speed*(   sin(beta)*sin(P1.theta)*sin(P1.phi)+cos(beta)*cos(P1.theta)                                                    );
+
+
+                                        //--Use the formula proposed by Kushner in
+                                        /*
+                                        P1.Vel[X_dir] = P1.speed*(   cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi)                             );
+                                        P1.Vel[Y_dir] = P1.speed*(   sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi)                              );
+                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta)                                                    );
+                                        */
 
 
                                         P1.time_interval = dx/P1.speed;
@@ -821,16 +858,33 @@ int main(int argc, char* argv[])
                                 C1.surface_normal(searching_index, searching_number, itag, P1.iPos, P1.Vel, norm_surface_N, norm_reflected_V, &grazing_angle,  &incident_angle );
 
                                 if (C1.iStatus[itag] == iMaskStat){
-                                        break; // for test
-                                        /*
-                                        if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
-                                                C1.IonMaskReaction(phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &ReactionExecution  );
-                                        }
-                                        */
-                                        P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
 
-                                        if ( P1.speed == 0){P1.ParticleType = 0;
-                                        }else{                            P1.time_interval = dx/P1.speed;}
+                                        if (P1.ParticleType == iClRadicalType){
+                                                P1.Vel[X_dir] = P1.speed*norm_reflected_V[X_dir];
+                                                P1.Vel[Y_dir] = P1.speed*norm_reflected_V[Y_dir];
+                                                P1.Vel[Z_dir] = P1.speed*norm_reflected_V[Z_dir];
+                                        }
+
+
+                                        if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
+                                                break; //--for test
+                                                C1.IonMaskReaction(phys_sputter_prob, itag, P1.energy*Joule_to_eV, incident_angle, &ReactionExecution  );
+                                                P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
+                                        }
+
+
+                                        if (P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType ){
+                                                break; //--for test
+                                        }
+
+
+                                        if ( P1.speed == 0){
+                                                P1.ParticleType = 0;
+                                        }else{
+                                                P1.time_interval = dx/P1.speed;
+                                        }
+
+                                        continue;
 
 
                                 }else if ( C1.iStatus[itag] == iSubstrateStat ){
@@ -839,26 +893,44 @@ int main(int argc, char* argv[])
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
 
                                                 if (ReactionExecution == 0){
+                                                        //cout << "Neutral radicals hit the substrate but no reaction happens !" ;
                                                         P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
                                                         P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
                                                         P1.phi = unif(generator)*2*PI;
                                                         if( norm_surface_N[X_dir] == 0 && norm_surface_N[Y_dir] == 0 ){
                                                                 alpha = 0;
                                                         }else{
+                                                                 //alpha = acos(norm_surface_N[X_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+
+
                                                                 if ( norm_surface_N[X_dir] >= 0){
                                                                         alpha = acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
-                                                                }else if ( norm_EmitParticle_V[X_dir] < 0){
+                                                                }else if ( norm_surface_N[X_dir] < 0){
                                                                         alpha = -acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
                                                                 }
+
                                                         }
                                                         beta = acos(norm_surface_N[Z_dir]);
-                                                        P1.Vel[X_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi)                             );
-                                                        P1.Vel[Y_dir] = P1.speed*( sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi)                              );
-                                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta)    );
+
+                                                        //--Use the formula proposed by Kushner in
+                                                        /*
+                                                        P1.Vel[X_dir] = P1.speed*(   cos(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+cos(beta)*sin(alpha)*cos(P1.theta)-sin(beta)*sin(P1.theta)*sin(P1.phi)                             );
+                                                        P1.Vel[Y_dir] = P1.speed*(   sin(beta)*cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)+cos(beta)*sin(P1.theta)*sin(P1.phi)                              );
+                                                        P1.Vel[Z_dir] = P1.speed*( -sin(alpha)*sin(P1.theta)*cos(P1.phi)+cos(alpha)*cos(P1.theta)                                                    );
+                                                         */
+
+                                                        //--Use the formula that I derived
+
+                                                        P1.Vel[X_dir] = P1.speed*( -cos(beta)*sin(alpha)*sin(P1.theta)*sin(P1.phi)+cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)                             );
+                                                        P1.Vel[Y_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*sin(P1.phi)+sin(alpha)*sin(P1.theta)*cos(P1.phi)-sin(beta)*cos(alpha)*cos(P1.theta)                              );
+                                                        P1.Vel[Z_dir] = P1.speed*( sin(beta)*sin(P1.theta)*sin(P1.phi)+cos(beta)*cos(P1.theta)    );
+
+                                                        P1.time_interval = dx/P1.speed;
                                                 }else if (ReactionExecution == 1){
+                                                        //cout << "Neutral radicals hit the substrate and reaction happens !" ;
                                                         P1.ParticleType = 0;
                                                 }
-
+                                                continue;
                                         }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){
 
                                                 if (P1.ParticleType == iClIonType){
@@ -877,6 +949,7 @@ int main(int argc, char* argv[])
 
 
                                                 if (ReactionExecution == 1 && EmitParticle != 0){
+                                                        //cout << "Particle with energetic type hit the substrate and reaction happens with emitted particle !"
                                                         dPos_EmitParticle[X_dir] = P1.dPos[X_dir];
                                                         dPos_EmitParticle[Y_dir] = P1.dPos[Y_dir];
                                                         dPos_EmitParticle[Z_dir] = P1.dPos[Z_dir];
@@ -891,22 +964,63 @@ int main(int argc, char* argv[])
                                                 P1.ParticleType = ReflectedParticle;
                                                 P1.reflected_velocity_with_new_energy(norm_reflected_V,  &grazing_angle, P1.Vel);
 
-                                                if ( P1.speed == 0){  P1.ParticleType = 0;
-                                                }else{                               P1.time_interval = dx/P1.speed;}
+                                                if ( P1.speed == 0){
+                                                        P1.ParticleType = 0;
+                                                }else{
+                                                        P1.time_interval = dx/P1.speed;
+                                                }
+
+                                                continue;
 
                                         }else if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
-                                                C1.redeposition(p0_redeposition, EmitParticle, itag, &ReactionExecution, &reaction_index);
-                                                P1.ParticleType = 0;
-                                        }
-                                }
-                        }
-                }//--End of particle propagation loop
-        }//--End of particle generation loop
+                                                C1.redeposition(p0_redeposition, P1.ParticleType, itag, &ReactionExecution, &reaction_index);
+
+                                                if (ReactionExecution == 0){
+                                                        //cout << "Particle with thermal type hit the substrate but no reaction happens ! " << endl;
+                                                        if ( P1.ParticleType == iSiClgType){
+                                                                P1.speed = P1.setInitialSpeed( Temperature, MassSilicon+MassChlorine, speed_cutoff_for_thermal_paricle[iSiCl2gType]  );
+                                                        }else if ( P1.ParticleType == iSiCl2gType){
+                                                                P1.speed = P1.setInitialSpeed( Temperature, MassSilicon+2*MassChlorine, speed_cutoff_for_thermal_paricle[iSiCl2gType]  );
+                                                        }else if ( P1.ParticleType == iSiCl3gType){
+                                                                P1.speed = P1.setInitialSpeed( Temperature, MassSilicon+3*MassChlorine, speed_cutoff_for_thermal_paricle[iSiCl3gType]  );
+                                                        }
+
+                                                        P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
+                                                        P1.phi = unif(generator)*2*PI;
+                                                        if( norm_surface_N[X_dir] == 0 && norm_surface_N[Y_dir] == 0 ){
+                                                                alpha = 0;
+                                                        }else{
+                                                                if ( norm_surface_N[X_dir] >= 0){
+                                                                        alpha = acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                                                                }else if ( norm_surface_N[X_dir] < 0){
+                                                                        alpha = -acos(-norm_surface_N[Y_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                                                                }
+
+                                                        }
+                                                        beta = acos(norm_surface_N[Z_dir]);
+
+                                                        //--Use the formula that I derived
+                                                        P1.Vel[X_dir] = P1.speed*( -cos(beta)*sin(alpha)*sin(P1.theta)*sin(P1.phi)+cos(alpha)*sin(P1.theta)*cos(P1.phi)+sin(beta)*sin(alpha)*cos(P1.theta)                             );
+                                                        P1.Vel[Y_dir] = P1.speed*( cos(beta)*cos(alpha)*sin(P1.theta)*sin(P1.phi)+sin(alpha)*sin(P1.theta)*cos(P1.phi)-sin(beta)*cos(alpha)*cos(P1.theta)                              );
+                                                        P1.Vel[Z_dir] = P1.speed*( sin(beta)*sin(P1.theta)*sin(P1.phi)+cos(beta)*cos(P1.theta)    );
+
+                                                        P1.time_interval = dx/P1.speed;
+                                                }else if (ReactionExecution == 1){
+                                                        //cout << "Particle with thermal type hit the substrate and reaction happens !" << endl;
+                                                        P1.ParticleType = 0;
+                                                }
+
+                                                continue;
+                                        }//--End of emittion particle ( if clause)
+                                }//--End of substrate (if clause)
+                        }//--End of count_point_on_solid (if clause)
+                }//--End of particle propagation loop (for loop)
+        }//--End of particle generation loop (for loop)
         cout << "Total number of files generated : " << file_index <<endl;
         cout << "Total Particle Number : " << particleNumber << endl;
         file_index++;
         write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
-                                     PrintSi, PrintSiCl, PrintSiCl2, PrintSiCl3, directory+output_file_name, append, file_index );
+                                     PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+output_file_name, append, file_index );
 
         /*
         ofstream out1( directory+"number_of_reactions"   );
