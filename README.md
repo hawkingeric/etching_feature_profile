@@ -1,8 +1,10 @@
 # etching_featue_profile
-1. Download the binary execution file in bin/etching (without openMP) or etching_openMP.o (with openMP).
-   Or you could download all the .cpp .h .cpp files and compile by yourself.
+1. Compile with g++
    g++ *.cpp
    g++ -o etching_openMP.o -fopenmp *.cpp
-2. Download json_test.json.
+2. JSON file "json_test.json" contains the input setting. Please edit it appropriately for your own purpose.
 3. Specify your output file directory under tag "output_file_directory".
-4. Download IEADF_data and specify your IEADF_data directory in json file under tag "IEADF_data_directory".
+4. DATA file "IEADF_data" contains the ion-energy-angular distribution function as needed.
+5. Specify your IEADF_data directory in json file under tag "IEADF_data_directory".
+6. Run the job
+   ./{executable file} -input_json json_test.json
