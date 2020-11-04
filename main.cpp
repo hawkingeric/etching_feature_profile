@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
         vector<double> cumulativeflux_ArIon, cumulativeflux_ClIon, cumulativeflux_Cl2Ion, ion_energy, ion_angle;
         bool NEUTRAL_THETA_GAUSSIAN, ION_THETA_GAUSSIAN;
         double Temperature, dClRadicalFlux, dSigFlux, dSiClgFlux, dSiCl2gFlux, dSiCl3gFlux, dSiCl4gFlux, dClIonFlux, dCl2IonFlux, dArIonType ;
-        double neutral_gaussian_sigma, ion_gaussian_sigma, particle_size_factor;
-        int n_for_cosine_law, timestep_number;
+        double neutral_gaussian_sigma, ion_gaussian_sigma, particle_size_factor, n_for_cosine_law;
+        int timestep_number;
 
 
 
@@ -96,6 +96,7 @@ int main(int argc, char* argv[])
         if ( inputJsonFile == "none" ){
                 cout << "Please check the input file." << endl;
         }else{   //--Read Json file
+
                 json configuration_json ; //--Declare a json object
                 ifstream jsonFile ;
                 //jsonFile.open( inputJsonFile.c_str(), ifstream::in ) ; //--read json file named inputJsonFile
@@ -285,7 +286,7 @@ int main(int argc, char* argv[])
                 cout << "  ION_THETA_GAUSSIAN           =    " << ION_THETA_GAUSSIAN << endl;
                 cout << "  ion_gaussian_sigma           =    " << ion_gaussian_sigma << endl;
                 cout << "  n for cosine law             =    " <<  n_for_cosine_law <<endl;
-                cout << "  particle size factor       =    " <<  particle_size_factor <<endl;
+                cout << "  particle size factor         =    " <<  particle_size_factor <<endl;
                 cout << endl;
         }//--End of reading and printing json file
 
@@ -893,7 +894,10 @@ int main(int argc, char* argv[])
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &reaction_index);
 
                                                 if (ReactionExecution == 0){
-                                                        //cout << "Neutral radicals hit the substrate but no reaction happens !" ;
+                                                        /*  for test
+                                                        cout << "Neutral radicals hit the substrate but no reaction happens !" ;
+                                                        cin.get();
+                                                        */
                                                         P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   speed_cutoff_for_thermal_paricle[iClRadicalType]  );
                                                         P1.theta = P1.setReemitTheta(n_for_cosine_law); //--theta is with respect to surface normal
                                                         P1.phi = unif(generator)*2*PI;
@@ -927,7 +931,10 @@ int main(int argc, char* argv[])
 
                                                         P1.time_interval = dx/P1.speed;
                                                 }else if (ReactionExecution == 1){
-                                                        //cout << "Neutral radicals hit the substrate and reaction happens !" ;
+                                                        /*
+                                                        cout << "Neutral radicals hit the substrate and reaction happens !" ;
+                                                        cin.get();
+                                                        */
                                                         P1.ParticleType = 0;
                                                 }
                                                 continue;
@@ -949,7 +956,10 @@ int main(int argc, char* argv[])
 
 
                                                 if (ReactionExecution == 1 && EmitParticle != 0){
-                                                        //cout << "Particle with energetic type hit the substrate and reaction happens with emitted particle !"
+                                                        /*
+                                                        cout << "Particle with energetic type hit the substrate and reaction happens with emitted particle !";
+                                                        cin.get();
+                                                        */
                                                         dPos_EmitParticle[X_dir] = P1.dPos[X_dir];
                                                         dPos_EmitParticle[Y_dir] = P1.dPos[Y_dir];
                                                         dPos_EmitParticle[Z_dir] = P1.dPos[Z_dir];
@@ -976,7 +986,10 @@ int main(int argc, char* argv[])
                                                 C1.redeposition(p0_redeposition, P1.ParticleType, itag, &ReactionExecution, &reaction_index);
 
                                                 if (ReactionExecution == 0){
-                                                        //cout << "Particle with thermal type hit the substrate but no reaction happens ! " << endl;
+                                                        /*
+                                                        cout << "Particle with thermal type hit the substrate but no reaction happens ! " << endl;
+                                                        cin.get();
+                                                        */
                                                         if ( P1.ParticleType == iSiClgType){
                                                                 P1.speed = P1.setInitialSpeed( Temperature, MassSilicon+MassChlorine, speed_cutoff_for_thermal_paricle[iSiCl2gType]  );
                                                         }else if ( P1.ParticleType == iSiCl2gType){
@@ -1006,7 +1019,6 @@ int main(int argc, char* argv[])
 
                                                         P1.time_interval = dx/P1.speed;
                                                 }else if (ReactionExecution == 1){
-                                                        //cout << "Particle with thermal type hit the substrate and reaction happens !" << endl;
                                                         P1.ParticleType = 0;
                                                 }
 

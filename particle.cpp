@@ -124,26 +124,14 @@ double particle::setInitialTheta_by_Gaussian(double sigma)
 }
 
 
-double particle::setReemitTheta(int n)
+double particle::setReemitTheta(double n)
 {
         double reemit_angle;
         random_device rd;
         default_random_engine generator( rd() ); // random number generator
         uniform_real_distribution<double> unif(0.0, 1.0);  // random number uniform distribution
-
-        double p_max = 1;
-        double t_rand, p_rand, prob_density;
-        do{
-                t_rand = unif(generator)*PI/2;
-                prob_density = pow(  cos(t_rand), n   ) ; //--Gaussian distribution probability density function
-                //cout << "t_rand = " << t_rand << endl;
-                //cout << "cos(t_rand) = " << cos(t_rand) << endl;
-                //cout << "cos(t_rand)^n = " << prob_density << endl;
-
-                p_rand = unif(generator)*p_max ;
-        }while (prob_density < p_rand) ;
-        reemit_angle = t_rand ;
-        //cin.get();
+        double t_rand = unif(generator);
+        reemit_angle = acos(   pow( t_rand, 1/(n+1) )   );
         return reemit_angle;
 }
 
