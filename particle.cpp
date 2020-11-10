@@ -21,7 +21,7 @@ double Maxwell_Boltzmann_cdf(double mass, double T, double v){
 
 
 //--Calculate velocity of Cumulative density function of Maxwell Boltzmann distribution
-double calc_v_cut(double mass, double T){
+double CalculateSpeedCutoff(double mass, double T){
         double criterion = 0.0001;
         double dv = 0.1;
         double v_rms = sqrt(3*BoltzmannConstant_SI*T/mass);  // the root mean square velocity = sqrt(3kT/m)
@@ -55,28 +55,18 @@ void particle::setInitialType(vector<double>& ParticleProb_for_incident_particle
         int number_of_incident_particle = ParticleProb_for_incident_particle.size() ;
         double CumuProb [number_of_incident_particle] = {0.0};
         CumuProb[0] = ParticleProb_for_incident_particle[0];
-
         for(int i = 1; i < number_of_incident_particle; i ++){
                 CumuProb[i] = CumuProb[i-1] + ParticleProb_for_incident_particle[i] ;
         }
-
         double RandParticle = unif(generator);
 
         if (RandParticle >= 0 && RandParticle < CumuProb[0]){
                 particle::ParticleType = iClRadicalType;
         }else if ( RandParticle >= CumuProb[0] && RandParticle < CumuProb[1]){
-                particle::ParticleType = iSigType;
+                particle::ParticleType = iClIonType;
         }else if ( RandParticle >= CumuProb[1] && RandParticle < CumuProb[2]){
-                particle::ParticleType = iSiClgType;
-        }else if ( RandParticle >= CumuProb[2] && RandParticle < CumuProb[3]){
-                particle::ParticleType = iSiCl2gType;
-        }else if ( RandParticle >= CumuProb[3] && RandParticle < CumuProb[4]){
-                 particle::ParticleType = iSiCl3gType;
-        }else if ( RandParticle >= CumuProb[4] && RandParticle < CumuProb[5]){
-                 particle::ParticleType = iClIonType;
-        }else if ( RandParticle >= CumuProb[5] && RandParticle < CumuProb[6]){
                  particle::ParticleType = iCl2IonType;
-        }else if ( RandParticle >= CumuProb[6] && RandParticle < CumuProb[7] ){
+        }else if ( RandParticle >= CumuProb[2] && RandParticle < CumuProb[3]){
                 particle::ParticleType = iArIonType;
         }else{
                 particle::ParticleType = 0;
@@ -124,7 +114,7 @@ double particle::setInitialTheta_by_Gaussian(double sigma)
 }
 
 
-double particle::setReemitTheta(double n)
+double particle::setReemittedTheta(double n)
 {
         double reemit_angle;
         random_device rd;
@@ -135,35 +125,62 @@ double particle::setReemitTheta(double n)
         return reemit_angle;
 }
 
+//--input: normReflectedVelocity, GrazingAngle, epsilon_0, epsilon_s, theta_0, gamma_0, E, speed, velocity;  output: ReflectedVelocity
+void particle::ReflectedWithNewEnergy(double* normReflectedVelocity, double* GrazingAngle, double* epsilon_0, double* epsilon_s,
+                                                                                       double* theta_0, double* gamma_0){
+        double EnergyDependentScalingFactor;
+        double AngleDependentScalingFactor;
+        double Energy = particle::energy*Joule_to_eV;
+        double Mass = particle::mass;
 
-void particle::reflected_velocity_with_new_energy(double* norm_reflected_V, double* grazing_angle, double* reflected_velocity){
-        double energy_factor;
-        double angle_factor;
-        double epsilon_0 = 0.0/Joule_to_eV;
-        double epsilon_s = 50/Joule_to_eV;
-        double theta_0 = 30;
-        double gamma_0 = 0.85;
 
-        if ( particle::energy < epsilon_0 ){
-                energy_factor = 0;
-        }else if ( particle::energy >= epsilon_0 && particle::energy <= epsilon_s ){
-                energy_factor = (particle::energy - epsilon_0)/(epsilon_s - epsilon_0);
-        }else if (particle::energy > epsilon_s){
-                energy_factor = 1;
+
+        if ( Energy < *epsilon_0 ){
+                EnergyDependentScalingFactor = 0;
+        }else if ( Energy >= *epsilon_0 && Energy <= *epsilon_s ){
+                EnergyDependentScalingFactor = (Energy - *epsilon_0)/(*epsilon_s - *epsilon_0);
+        }else if (  Energy > *epsilon_s){
+                EnergyDependentScalingFactor = 1;
         }
 
-        if( *grazing_angle  < theta_0){
-                angle_factor = (theta_0 - *grazing_angle)/theta_0;
-        }else if (*grazing_angle >= theta_0){
-                angle_factor = 0.0;
+        if( *GrazingAngle  < *theta_0){
+                AngleDependentScalingFactor = (*theta_0 - *GrazingAngle)/(*theta_0);
+        }else if (*GrazingAngle >= *theta_0){
+                AngleDependentScalingFactor = 0.0;
         }
 
-        particle::energy = gamma_0 * angle_factor * energy_factor * particle::energy; //--updated energy
+        particle::energy = particle::energy*(*gamma_0)*AngleDependentScalingFactor*EnergyDependentScalingFactor; //--updated energy
         particle::speed = sqrt(2*particle::energy/particle::mass); //--updated speed
-
-        particle::Vel[X_dir] = particle::speed*norm_reflected_V[X_dir];
-        particle::Vel[Y_dir] = particle::speed*norm_reflected_V[Y_dir];
-        particle::Vel[Z_dir] = particle::speed*norm_reflected_V[Z_dir];
+        particle::Vel[X_dir] = particle::speed*normReflectedVelocity[X_dir];  //--updated x component of velocity
+        particle::Vel[Y_dir] = particle::speed*normReflectedVelocity[Y_dir];  //--updated y component of velocity
+        particle::Vel[Z_dir] = particle::speed*normReflectedVelocity[Z_dir];  //--updated z component of velocity
 }
 
 
+void particle::ReemittedWithNewDirection(double* normSurfaceNormal, double speed, double theta, double phi){
+        double alpha;  //--azimusal angle of surface normal vector
+        double beta;  //--polar angle of surface normal vector;
+        double sqrt_of_Nxsquare_plus_Nysquare = sqrt(  pow(normSurfaceNormal[X_dir], 2.0)+pow(normSurfaceNormal[Y_dir], 2.0)  );
+        if( sqrt_of_Nxsquare_plus_Nysquare == 0 ){
+                alpha = 0;
+        }else{
+                //alpha = acos(norm_surface_N[X_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
+                if ( normSurfaceNormal[X_dir] >= 0){
+                        alpha =   acos(  -normSurfaceNormal[Y_dir] /sqrt_of_Nxsquare_plus_Nysquare    );
+                }else if ( normSurfaceNormal[X_dir] < 0){
+                        alpha = -acos(  -normSurfaceNormal[Y_dir] / sqrt_of_Nxsquare_plus_Nysquare   );
+                }
+        }
+        beta = acos(normSurfaceNormal[Z_dir]);
+        //--Use the formula proposed by Kushner
+        /*
+        particle::Vel[X_dir] = speed*(   cos(beta)*cos(alpha)*sin(theta)*cos(phi)+cos(beta)*sin(alpha)*cos(theta)-sin(beta)*sin(theta)*sin(phi)   );
+        particle::Vel[Y_dir] = speed*(   sin(beta)*cos(alpha)*sin(theta)*cos(phi)+sin(beta)*sin(alpha)*cos(theta)+cos(beta)*sin(theta)*sin(phi)   );
+        particle::Vel[Z_dir] = speed*( -sin(alpha)*sin(theta)*cos(phi)+cos(alpha)*cos(theta)                                                    );
+        */
+        //--Use the formula that I derived
+        particle::Vel[X_dir] = speed*( -cos(beta)*sin(alpha)*sin(theta)*sin(phi)+cos(alpha)*sin(theta)*cos(phi)+sin(beta)*sin(alpha)*cos(theta)   );
+        particle::Vel[Y_dir] = speed*(   cos(beta)*cos(alpha)*sin(theta)*sin(phi)+sin(alpha)*sin(theta)*cos(phi)-sin(beta)*cos(alpha)*cos(theta)   );
+        particle::Vel[Z_dir] = speed*(   sin(beta)*sin(theta)*sin(phi)+cos(beta)*cos(theta)    );
+
+}

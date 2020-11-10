@@ -1,5 +1,8 @@
 #include "etching.h"
 using namespace std;
+
+void calc_prob_of_energy(vector<double>&, double*,  double, double*);
+void calc_prob_of_angle( vector<int>&, vector<double>&, vector<double>&, double*, double*);
 class cell
 {
         public:
@@ -18,14 +21,26 @@ class cell
                 void Slope(int, double *);
                 void Slope2(int, double *);
                 void Slope3(int, double *);
-                void surface_normal(int [][3] , int, int, int*, double*, double*, double*, double*, double*);
+                void surface_normal(int [][3], int, int, int*, double*, double*, double*, double*, double*);
+
+                //void CalculateSurfaceNormal(int [][3] , int, int, int*, double*);
+                //void CalculateReflectedVelocity(double*, double*, double*, double* );
                 void ClRadicalReaction(vector<double>&, int, int, int*, int*);
                 void redeposition(vector<double>&, int, int, int*, int*);
-                void ClIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&,  int, int, double, double, int*, int*, int*, int*);
-                void Cl2IonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int, int, double, double, int*, int*, int*, int*);
-                void ArIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int,  int, double, double, int*, int*, int*, int*);
-                void IonMaskReaction(vector<double>&, int, double,  double , int* );
 
+                /*
+                void ClIonReaction(int, vector<double>&, double*, double*, int*, int*, int*, int*);
+                void Cl2IonReaction(int, vector<double>&, double*, double*, int*, int*, int*, int*);
+                void ArIonReaction(int, vector<double>&, double*, double*, int*, int*, int*, int*);
+                */
+                void ClIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int, int, double,
+                                                          double, int*, int*, int*, int*);
+                void Cl2IonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int, int, double,
+                                                             double, int*, int*, int*, int*);
+                void ArIonReaction(vector<double>&, double*, vector<double>&, vector<int>&, vector<double>&, vector<double>&, int, int, double,
+                                                          double, int*, int*, int*, int*);
+
+                void IonMaskReaction(vector<double>&, int, double,  double , int* );
 
 
                 int iNumCell, iDimSize[3];
@@ -34,7 +49,7 @@ class cell
                 int **iID_NBR;
                 int *iStatus; // 0:vacuum 1:material 2: mask
                 double *dNumCharge, *dNumMaterial, *dNumNeutral, *dNumMask, *dNumIon, **dNumSiClxg, **dNumSiClxs;
-                double **grad_potential;
+                double **ElectricForce;
                 double dCoverage;
                 double DeltaX, DeltaY, DeltaZ;
 

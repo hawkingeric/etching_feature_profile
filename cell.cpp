@@ -26,13 +26,13 @@ void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
         cell::dNumNeutral    = new double [cell::iNumCell];
         cell::dNumMask       = new double [cell::iNumCell];
         cell::dNumIon        = new double [cell::iNumCell];
-        cell::grad_potential = new double* [cell::iNumCell];
+        cell::ElectricForce = new double* [cell::iNumCell];
         cell::iDim           = new int* [cell::iNumCell];  //2-D array int type with size of iNumCell // store the coordinates of each cell
         cell::iID_NBR        = new int* [cell::iNumCell]; // NBR = neighboring cell
 
         for(i =0; i<cell::iNumCell; i++)        cell::dNumSiClxs[i] = new double [4];
         for(i =0; i<cell::iNumCell; i++)        cell::dNumSiClxg[i] = new double [4];
-        for(i =0; i<cell::iNumCell; i++)        cell::grad_potential[i] = new double [3];
+        for(i =0; i<cell::iNumCell; i++)        cell::ElectricForce[i] = new double [3];
         for(i=0; i<cell::iNumCell; i++)         cell::iDim[i]    = new int [3]; //for each row in iDim, assign a 1-D array with size of 3 to store the (x y z) coordinate
         for(i=0; i<cell::iNumCell; i++)         cell::iID_NBR[i] = new int [27]; // for each row in iID_NBR, assign a 1-D array with size of 27 to store the neighboring coordinates
 
@@ -55,9 +55,9 @@ void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
                 cell::dNumSiClxg[i][1] = 0;                             //--number of SiCl(g)
                 cell::dNumSiClxg[i][2] = 0;                             //--number of SiCl2(g)
                 cell::dNumSiClxg[i][3] = 0;                             //--number of SiCl3(g)
-                cell::grad_potential[i][0]  =  0.0;
-                cell::grad_potential[i][1]  =  0.0;
-                cell::grad_potential[i][2]  =  0.0;
+                cell::ElectricForce[i][0]  =  0.0;
+                cell::ElectricForce[i][1]  =  0.0;
+                cell::ElectricForce[i][2]  =  0.0;
         }
 
         cell::setNBR();
@@ -142,6 +142,7 @@ void cell::setStatus(int iTagCell, int iST, int iNum)
           }
         //ctor
 }
+
 
 
 //input: itag, iPos, incident_V; output: norm_surface_N, norm_reflected_V, grazing_angle, incident_angle
@@ -325,6 +326,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
 
 
 }
+
 
 
 
