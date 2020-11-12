@@ -694,7 +694,7 @@ int main(int argc, char* argv[])
                                                 P1.mass = MassSilicon+2*MassChlorine;
                                         }else if ( P1.ParticleType == iSiCl3gType){
                                                 P1.mass = MassSilicon+3*MassChlorine;
-                                        }else if ( P1.ParticleType == iSiCl4gType){
+                                        }else if ( P1.ParticleType == iSigType || P1.ParticleType == iSiCl4gType){
                                                 EmittedParticle = 0;
                                                 break;
                                         }

@@ -11,8 +11,7 @@ void cell::ClRadicalReaction(vector<double>& p0_ClRadicalReaction, int itag, int
         int number_of_reactions = p0_ClRadicalReaction.size();
 
         //--calculation of total prob, and cumulative prob
-        vector<double> ReactionProb;
-        double sumReactionProb = 0;
+/*
         double denominator = cell::dNumSiClxs[itag][0] + cell::dNumSiClxs[itag][1] + cell::dNumSiClxs[itag][2] * 2 + cell::dNumSiClxs[itag][3] * 2;
         ReactionProb.push_back(   p0_ClRadicalReaction[0]*cell::dNumSiClxs[itag][0]/denominator   );
         ReactionProb.push_back(   p0_ClRadicalReaction[1]*cell::dNumSiClxs[itag][1]/denominator   );
@@ -20,6 +19,16 @@ void cell::ClRadicalReaction(vector<double>& p0_ClRadicalReaction, int itag, int
         ReactionProb.push_back(   p0_ClRadicalReaction[3]*cell::dNumSiClxs[itag][2]/denominator   );
         ReactionProb.push_back(   p0_ClRadicalReaction[4]*cell::dNumSiClxs[itag][3]/denominator   );
         ReactionProb.push_back(   p0_ClRadicalReaction[5]*cell::dNumSiClxs[itag][3]/denominator   );
+
+        vector<double> ReactionProb;
+        ReactionProb.push_back(   p0_ClRadicalReaction[0]*cell::dNumSiClxs[itag][0]/denominator   );
+        ReactionProb.push_back(   p0_ClRadicalReaction[1]*cell::dNumSiClxs[itag][1]/denominator   );
+        ReactionProb.push_back(   p0_ClRadicalReaction[2]*cell::dNumSiClxs[itag][2]/denominator   );
+        ReactionProb.push_back(   p0_ClRadicalReaction[3]*cell::dNumSiClxs[itag][2]/denominator   );
+        ReactionProb.push_back(   p0_ClRadicalReaction[4]*cell::dNumSiClxs[itag][3]/denominator   );
+        ReactionProb.push_back(   p0_ClRadicalReaction[5]*cell::dNumSiClxs[itag][3]/denominator   );
+
+        double sumReactionProb = 0;
         for( int i = 0; i < number_of_reactions; i++){
                 sumReactionProb += ReactionProb[i];
         }
@@ -33,62 +42,89 @@ void cell::ClRadicalReaction(vector<double>& p0_ClRadicalReaction, int itag, int
                         ReactionProb[i] = ReactionProb[i-1] + ReactionProb[i] ;
                 }
         }
+*/
+        if (cell::dNumSiClxs[itag][0] == 1){  //--if the cell is Si(s)
+                if  ( happen_or_not <= p0_ClRadicalReaction[0]  ){ //--reaction 1 : Si(s) + Cl --> SiCl(s)        p0_ClRadicalReaction[0] = 0.99
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][0]--;
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][1]++;
+                        *ReactionExecution = 1;
+                        *reaction_index = 1;
+                }else{
+                        *ReactionExecution = 0;
+                        *reaction_index = 0;
+                }
+        }else if (cell::dNumSiClxs[itag][1] == 1){  //--if the cell is SiCl(s)
+                if  ( happen_or_not <= p0_ClRadicalReaction[1]  ){  //--reaction 2 : SiCl(s) + Cl --> SiCl2(s)        p0_ClRadicalReaction[1] = 0.40
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][1]--;
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][2]++;
+                        *ReactionExecution = 1;
+                        *reaction_index = 2;
+                }else{
+                        *ReactionExecution = 0;
+                        *reaction_index = 0;
+                }
+        }else if (cell::dNumSiClxs[itag][2] == 1){  //--if the cell is SiCl2(s)
+                if  ( happen_or_not <= p0_ClRadicalReaction[2]  ){  //--reaction 3 : SiCl2(s) + Cl --> SiCl3(s)              p0_ClRadicalReaction[2] = 0.30
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][2]--;
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][3]++;
+                        *ReactionExecution = 1;
+                        *reaction_index = 3;
+                }else if (  happen_or_not > p0_ClRadicalReaction[2] && happen_or_not <= (p0_ClRadicalReaction[2] + p0_ClRadicalReaction[3]) ){
+                        //--reaction 4 : SiCl2(s) + Cl --> SiCl(s) + Cl2         p0_ClRadicalReaction[3] = 0.02
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][2]--;
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][1]++;
+                        *ReactionExecution = 1;
+                        *reaction_index = 4;
+                }else{
+                        *ReactionExecution = 0;
+                        *reaction_index = 0;
+                }
+        }else if (cell::dNumSiClxs[itag][3] == 1){  //--if the cell is SiCl3(s)
+                if  ( happen_or_not <= p0_ClRadicalReaction[4] ){  //--reaction 5 : SiCl3(s) + Cl --> SiCl4(g)                p0_ClRadicalReaction[4] = 0.0001
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][3]--;
+                        #pragma omp atomic
+                        cell::dNumMaterial[itag]--;
+                        *ReactionExecution = 1;
+                        *reaction_index = 5;
+                }else if(  happen_or_not > p0_ClRadicalReaction[4] && happen_or_not <= (p0_ClRadicalReaction[4] + p0_ClRadicalReaction[5]) ){
+                        //--reaction 6 : SiCl3(s) + Cl --> SiCl2(s) + Cl2    p0_ClRadicalReaction[5] = 0.08
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][3]--;
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][2]++;
+                        *ReactionExecution = 1;
+                        *reaction_index = 6 ;
+                }else{
+                        *ReactionExecution = 0;
+                        *reaction_index = 0;
+                }
+        }
 
+/*
+         if  (  happen_or_not <= ReactionProb[1]  ){
 
-
-
-        if  ( happen_or_not < ReactionProb[0]  ){
-                //--reaction 1 : Si(s) + Cl --> SiCl(s)        p0_ClRadicalReaction[0] = 0.99
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][0]--;
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][1]++;
-                *ReactionExecution = 1;
-                *reaction_index = 1;
-        }else if  (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
-                //--reaction 2 : SiCl(s) + Cl --> SiCl2(s)        p0_ClRadicalReaction[1] = 0.40
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][1]--;
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][2]++;
-                *ReactionExecution = 1;
-                *reaction_index = 2;
         }else if  (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
-                //--reaction 3 : SiCl2(s) + Cl --> SiCl3(s)              p0_ClRadicalReaction[2] = 0.30
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][2]--;
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][3]++;
-                *ReactionExecution = 1;
-                *reaction_index = 3;
+
         }else if ( happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3]   ){
-                //--reaction 4 : SiCl2(s) + Cl --> SiCl(s) + Cl2         p0_ClRadicalReaction[3] = 0.02
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][2]--;
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][1]++;
-                *ReactionExecution = 1;
-                *reaction_index = 4;
+
         }else if  ( happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
-                //--reaction 5 : SiCl3(s) + Cl --> SiCl4(g)                p0_ClRadicalReaction[4] = 0.0001
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][3]--;
-                #pragma omp atomic
-                cell::dNumMaterial[itag]--;
-                *ReactionExecution = 1;
-                *reaction_index = 5;
+
         }else if ( happen_or_not >= ReactionProb[4] && happen_or_not < ReactionProb[5]  )  {
-                //--reaction 6 : SiCl3(s) + Cl --> SiCl2(s) + Cl2    p0_ClRadicalReaction[5] = 0.08
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][3]--;
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][2]++;
-                *ReactionExecution = 1;
-                *reaction_index = 6 ;
+
         }else{
                 *ReactionExecution = 0;
                 *reaction_index = 0;
         }
+*/
         if ( cell::dNumMaterial[itag] == 0 )   cell::setStatus(itag, iVacuumStat, 1);
 }
 
