@@ -287,14 +287,24 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
 
 
         //--calculation of total prob, and cumulative prob
-        vector<double> ReactionProb;
+
         double sumReactionProb = 0;
+        vector<double> ReactionProb;
+        ReactionProb.push_back(   prob_of_energy[0]*prob_of_angle[0]   );
+        ReactionProb.push_back(   prob_of_energy[1]*prob_of_angle[1]   );
+        ReactionProb.push_back(   prob_of_energy[2]*prob_of_angle[2]   );
+        ReactionProb.push_back(   prob_of_energy[3]*prob_of_angle[3]   );
+        ReactionProb.push_back(   prob_of_energy[4]*prob_of_angle[4]  );
+
+        /*
+
         double denominator = cell::dNumSiClxs[itag][0] + cell::dNumSiClxs[itag][1]*2 + cell::dNumSiClxs[itag][2] + cell::dNumSiClxs[itag][3] ;
         ReactionProb.push_back(   prob_of_energy[0]*prob_of_angle[0]*cell::dNumSiClxs[itag][0]/denominator   );
         ReactionProb.push_back(   prob_of_energy[1]*prob_of_angle[1]*cell::dNumSiClxs[itag][1]/denominator   );
         ReactionProb.push_back(   prob_of_energy[2]*prob_of_angle[2]*cell::dNumSiClxs[itag][1]/denominator   );
         ReactionProb.push_back(   prob_of_energy[3]*prob_of_angle[3]*cell::dNumSiClxs[itag][2]/denominator   );
         ReactionProb.push_back(   prob_of_energy[4]*prob_of_angle[4]*cell::dNumSiClxs[itag][3]/denominator   );
+
         for( int i = 0; i < number_of_reactions; i++){
                 sumReactionProb += ReactionProb[i];
         }
@@ -308,64 +318,110 @@ void cell::ClIonReaction(vector<double>& Eth_ClIonReaction, double* E0, vector<d
                         ReactionProb[i] = ReactionProb[i-1] + ReactionProb[i] ;
                 }
         }
+        */
 
+        if ( cell::dNumSiClxs[itag][0] == 1){
+                if(  happen_or_not <= ReactionProb[0]  ){
+                        //--reaction 9 : Si(s) + Cl+ --> Si(g) + Cl*        p0_ClIonReaction[0] = 0.05    Eth = 25 eV    physical sputtering
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][0]--;
+                        #pragma omp atomic
+                        cell::dNumMaterial[itag]--;
+                        *ReactionExecution = 1;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = iSigType ;
+                        *reaction_index = 9;
+                }else{
+                        *ReactionExecution = 0;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = 0;
+                        *reaction_index = 0;
+                }
+        }else if ( cell::dNumSiClxs[itag][1] == 1){
 
-        if ( happen_or_not < ReactionProb[0]   ){
-                //--reaction 9 : Si(s) + Cl+ --> Si(g) + Cl*        p0_ClIonReaction[0] = 0.05    Eth = 25 eV    physical sputtering
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][0]--;
-                #pragma omp atomic
-                cell::dNumMaterial[itag]--;
-                *ReactionExecution = 1;
-                *ReflectedParticle = iClIonType;
-                *EmitParticle = iSigType ;
-                *reaction_index = 9;
-        }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
-                //--reaction 10 : SiCl(s) + Cl+ --> SiCl2(g)        p0_ClIonReaction[1] = 0.10    Eth = 35 eV    physical sputtering
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][1]--;
-                #pragma omp atomic
-                cell::dNumMaterial[itag]--;
-                *ReactionExecution = 1;
-                *ReflectedParticle = 0;
-                *EmitParticle = iSiCl2gType ;
-                *reaction_index = 10;
-         }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
-                //--reaction 11 : SiCl(s) + Cl+ --> SiCl2(g)        p0_ClIonReaction[2] = 0.20    Eth = 10 eV    chemical sputtering
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][1]--;
-                #pragma omp atomic
-                cell::dNumMaterial[itag]--;
-                *ReactionExecution =1;
-                *ReflectedParticle = 0;
-                *EmitParticle = iSiCl2gType ;
-                *reaction_index = 11;
-        }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] ){
-                //--reaction 12 : SiCl2(s) + Cl+ --> SiCl2(g) + Cl*        p0_ClIonReaction[3] = 0.5    Eth = 10 eV    chemical sputtering
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][2]--;
-                #pragma omp atomic
-                cell::dNumMaterial[itag]--;
-                *ReactionExecution = 1;
-                *ReflectedParticle = iClIonType;
-                *EmitParticle = iSiCl2gType ;
-                *reaction_index = 12;
-        }else if(  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
-                //--reaction 13 : SiCl3(s) + Cl+ --> SiCl3(g) + Cl*   p0_ClIonReaction[4] = 0.5    Eth = 10 eV    chemical sputtering
-                #pragma omp atomic
-                cell::dNumSiClxs[itag][3]--;
-                #pragma omp atomic
-                cell::dNumMaterial[itag]--;
-                *ReactionExecution = 1;
-                *ReflectedParticle = iClIonType;
-                *EmitParticle = iSiCl3gType ;
-                *reaction_index = 13;
-        }else{
-                *ReactionExecution = 0;
-                *ReflectedParticle = iClIonType;
-                *EmitParticle = 0;
-                *reaction_index = 0;
+                sumReactionProb = ReactionProb[1] + ReactionProb[2];
+                if( sumReactionProb > 1.0){
+                        ReactionProb[1] /= sumReactionProb;
+                        ReactionProb[2] /= sumReactionProb;
+                }
+
+                if(  happen_or_not <= ReactionProb[1]  ){
+                        //--reaction 10 : SiCl(s) + Cl+ --> SiCl2(g)        p0_ClIonReaction[1] = 0.10    Eth = 35 eV    physical sputtering
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][1]--;
+                        #pragma omp atomic
+                        cell::dNumMaterial[itag]--;
+                        *ReactionExecution = 1;
+                        *ReflectedParticle = 0;
+                        *EmitParticle = iSiCl2gType ;
+                        *reaction_index = 10;
+                }else if( happen_or_not > ReactionProb[1] && happen_or_not <= (ReactionProb[1]+ReactionProb[2]) ){
+                        //--reaction 11 : SiCl(s) + Cl+ --> SiCl2(g)        p0_ClIonReaction[2] = 0.20    Eth = 10 eV    chemical sputtering
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][1]--;
+                        #pragma omp atomic
+                        cell::dNumMaterial[itag]--;
+                        *ReactionExecution =1;
+                        *ReflectedParticle = 0;
+                        *EmitParticle = iSiCl2gType ;
+                        *reaction_index = 11;
+                }else{
+                        *ReactionExecution = 0;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = 0;
+                        *reaction_index = 0;
+                }
+        }else if ( cell::dNumSiClxs[itag][2] == 1){
+                if(  happen_or_not <= ReactionProb[3] ){
+                        //--reaction 12 : SiCl2(s) + Cl+ --> SiCl2(g) + Cl*        p0_ClIonReaction[3] = 0.5    Eth = 10 eV    chemical sputtering
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][2]--;
+                        #pragma omp atomic
+                        cell::dNumMaterial[itag]--;
+                        *ReactionExecution = 1;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = iSiCl2gType ;
+                        *reaction_index = 12;
+                }else{
+                        *ReactionExecution = 0;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = 0;
+                        *reaction_index = 0;
+                }
+        }else if ( cell::dNumSiClxs[itag][3] == 1){
+                if(  happen_or_not <= ReactionProb[4] ){
+                        //--reaction 13 : SiCl3(s) + Cl+ --> SiCl3(g) + Cl*   p0_ClIonReaction[4] = 0.5    Eth = 10 eV    chemical sputtering
+                        #pragma omp atomic
+                        cell::dNumSiClxs[itag][3]--;
+                        #pragma omp atomic
+                        cell::dNumMaterial[itag]--;
+                        *ReactionExecution = 1;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = iSiCl3gType ;
+                        *reaction_index = 13;
+                }else{
+                        *ReactionExecution = 0;
+                        *ReflectedParticle = iClIonType;
+                        *EmitParticle = 0;
+                        *reaction_index = 0;
+                }
         }
+
+/*
+        if ( happen_or_not < ReactionProb[0]   ){
+
+        }else if (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
+
+         }else if (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
+
+        }else if (  happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3] ){
+
+        }else if(  happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
+
+        }else{
+
+        }
+*/
         if ( cell::dNumMaterial[itag] == 0 )      cell::setStatus(itag, iVacuumStat, 1);
 
 }
