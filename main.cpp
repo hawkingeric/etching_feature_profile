@@ -272,7 +272,7 @@ int main(int argc, char* argv[])
                 cout << "  mask_thickness               =    " << iMaskThickZ << endl;
                 cout << "  trench_width                 =    " << iTrenchWidthX << endl;
                 cout << "  mask_width                   =    " << iMaskWidthX << endl;
-                cout << "  mask_length                      =    " << iMaskLength << endl;
+                cout << "  mask_length                  =    " << iMaskLength << endl;
                 cout << "  gap_width_x                  =    " << iGapWidthX << endl;
                 cout << "  gap_width_y                  =    " << iGapWidthY << endl;
                 cout << "  atom_number_in_material      =    " << iNumMaterial << endl;
@@ -291,7 +291,7 @@ int main(int argc, char* argv[])
                 cout << "  PRINT_SICl3                  =    " << PRINT_SICl3 << endl ;
                 cout << endl;
                 cout << "Simulation conditions:" << endl ;
-                cout << "  total_real_time   =    "  << TotalRealTime << endl;
+                cout << "  total_real_time              =    "  << TotalRealTime << endl;
                 cout << "  propagation_timestep_number  =    " << PropagationTimestepNumber << endl ;
                 cout << "  Boundary condition           =    " << BoundaryCondition << endl;
                 cout << "  Temperature                  =    "  << Temperature << endl;
