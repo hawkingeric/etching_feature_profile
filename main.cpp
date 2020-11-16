@@ -619,7 +619,7 @@ int main(int argc, char* argv[])
         /*Pre-calculation of total particle number, time interval,  and output frequency*/
         double FluxArea = Lx*Ly;
         double RealTimeInterval = 1/(TotalFlux*1E4)/FluxArea;  //--convert unit from cm^-2 to m^-2
-        int TotalParticle;
+        long long int TotalParticle;
         cout  << "The area of incidence (A) = " << FluxArea << " m^2" << endl;
         cout << "The total flux = "<< TotalFlux*1E4 << " m^-2 s^-1" << endl;
         //cout << "The number of atoms in a cell (Ns) = " << iNumMaterial << endl;
