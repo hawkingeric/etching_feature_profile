@@ -33,7 +33,8 @@
   },
   
   "simulation_conditions":
-  {           
+  {          
+    "total_real_time":              10,  "unit":"seconds", 
     "propagation_timestep_number":  1E4,
     "boundary_condition":           "periodic",    
     "Temperature":                  1000,

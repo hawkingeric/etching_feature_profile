@@ -223,6 +223,7 @@ int main(int argc, char* argv[])
                         if ( config.find( "propagation_timestep_number" ) != config.end() ){
 	                            PropagationTimestepNumber = config[ "propagation_timestep_number" ] ;
                         }
+                        TotalRealTime = config[ "total_real_time"];
                 }else{
                         cout << "No simulation_conditions tag in input file! " << endl ;
 	                    exit( 1 ) ;
