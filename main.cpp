@@ -38,7 +38,8 @@ int main(int argc, char* argv[])
         //--parameterf read from mesh
         string inputJsonFile, tmpString, geometry, meshfile;
         double dx, dy, dz;
-        int Nx, Ny, Nz, iSubstrateThickZ, iMaskThickZ, iTrenchWidthX, iMaskWidthX, iNumMaterial, iNumMask;
+        int Nx, Ny, Nz, iSubstrateThickZ, iMaskThickZ, iTrenchWidthX, iMaskWidthX, iMaskLength, iGapWidthX, iGapWidthY,
+               iNumMaterial, iNumMask;
         int SurfaceSearchingRadius, SurfaceSearchingRange, SurfaceSearchingNumber ;
 
         //--parameterd read from output setting
@@ -52,7 +53,7 @@ int main(int argc, char* argv[])
         vector<double>  cumulativeflux_ClIon, cumulativeflux_Cl2Ion, cumulativeflux_ArIon, IonEnergy, IonAngle;
         bool NEUTRAL_THETA_SCALING, ION_THETA_SCALING;
         double Temperature, dClRadicalFlux, dClIonFlux, dCl2IonFlux, dArIonType, NeutralThetaScalingFactor, IonThetaScalingFactor,
-                        ParticleSizeFactor, ReemissionCosineLawPower;
+                        ParticleSizeFactor, ReemissionCosineLawPower, TotalRealTime;
         int PropagationTimestepNumber;
 
         //--parameters read from surface ractions
@@ -138,10 +139,16 @@ int main(int argc, char* argv[])
 	                    Nx                                = config["domain_size_x"]; //--number of cells in x direction
                         Ny                                = config["domain_size_y"]; //--number of cells in y direction
                         Nz                                = config["domain_size_z"]; //--number of cells in z direction
+                        Lx = Nx*dx;
+                        Ly = Ny*dy;
+                        Lz = Nz*dz;
                         iSubstrateThickZ = config["substrate_thickness"];
                         iMaskThickZ           = config["mask_thickness"];
                         iTrenchWidthX      = config["trench_width"];
                         iMaskWidthX         = config["mask_width"];
+                        iMaskLength          = config["mask_length"];
+                        iGapWidthX           = config["gap_width_x"];
+                        iGapWidthY           = config["gap_width_y"];
                         iNumMaterial        = config["atom_number_in_material"];
                         iNumMask              = config["atom_number_in_mask"];
                         SurfaceSearchingRadius = config["surface_searching_radius"] ;
@@ -264,6 +271,9 @@ int main(int argc, char* argv[])
                 cout << "  mask_thickness               =    " << iMaskThickZ << endl;
                 cout << "  trench_width                 =    " << iTrenchWidthX << endl;
                 cout << "  mask_width                   =    " << iMaskWidthX << endl;
+                cout << "  mask_length                      =    " << iMaskLength << endl;
+                cout << "  gap_width_x                  =    " << iGapWidthX << endl;
+                cout << "  gap_width_y                  =    " << iGapWidthY << endl;
                 cout << "  atom_number_in_material      =    " << iNumMaterial << endl;
                 cout << "  atom_number_in_mask          =    " << iNumMask << endl;
                 cout << "  surface_searching_radius     =    " << SurfaceSearchingRadius << endl;
@@ -280,6 +290,7 @@ int main(int argc, char* argv[])
                 cout << "  PRINT_SICl3                  =    " << PRINT_SICl3 << endl ;
                 cout << endl;
                 cout << "Simulation conditions:" << endl ;
+                cout << "  total_real_time   =    "  << TotalRealTime << endl;
                 cout << "  propagation_timestep_number  =    " << PropagationTimestepNumber << endl ;
                 cout << "  Boundary condition           =    " << BoundaryCondition << endl;
                 cout << "  Temperature                  =    "  << Temperature << endl;
@@ -313,19 +324,8 @@ int main(int argc, char* argv[])
 
         /* Initialization for cell */
         cell C1;
-        if ( meshfile == "none" ){
-                //dy = dx; //--y length per cell size
-                //dz = dx; //--z length per cell size
-                Lx = Nx*dx;
-                Ly = Ny*dy;
-                Lz = Nz*dz;
-                //dSubstrateThickZ = iSubstrateThickZ*dz;
-                //dMaskThickZ = iMaskThickZ*dz;
-                //dTrenchWidthX = iTrenchWidthX*dx;
-                //dMaskWidthX = iMaskWidthX*dx;
+        if ( meshfile == "single_long_trench" ){
                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
-
-
                 for(int iz = 0; iz < Nz; iz++){
                         for(int iy = 0; iy < Ny; iy++){
                                 for(int ix = 0; ix < Nx; ix++){
@@ -345,7 +345,83 @@ int main(int argc, char* argv[])
                                 }
                         }
                 }
-
+        }else if ( meshfile == "array_set" ){
+                C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
+                for(int iz = 0; iz < Nz; iz++){
+                        for(int iy = 0; iy < Ny; iy++){
+                                for(int ix = 0; ix < Nx; ix++){
+                                        int itag =  ix + ( iy + iz*Ny )*Nx;
+                                        if(  iz < iSubstrateThickZ ){
+                                                //--setting for substrate
+                                                C1.setStatus(itag, iSubstrateStat, iNumMaterial);     //--Si has 8 atoms per unit cell with the dimension of 0.54 nm
+                                        }else if (  iz >= iSubstrateThickZ && iz < (iSubstrateThickZ + iMaskThickZ)  ) {
+                                                if ( ix < iGapWidthX/2 ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( ix >= iGapWidthX/2 && ix < iGapWidthX/2+iMaskWidthX ){
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }else if ( ix >= iGapWidthX/2+iMaskWidthX && ix < iGapWidthX/2+iMaskWidthX+iTrenchWidthX ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( ix >= iGapWidthX/2+iMaskWidthX+iTrenchWidthX && ix < iGapWidthX/2+iMaskWidthX*2+iTrenchWidthX ){
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }else if ( ix >= iGapWidthX/2+iMaskWidthX*2+iTrenchWidthX && ix < iGapWidthX/2+iMaskWidthX*2+iTrenchWidthX*2 ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( ix >= iGapWidthX/2+iMaskWidthX*2+iTrenchWidthX*2 && ix < iGapWidthX/2+iMaskWidthX*3+iTrenchWidthX*2 ){
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }else if ( ix >= iGapWidthX/2+iMaskWidthX*3+iTrenchWidthX*2 && ix < iGapWidthX/2*3+iMaskWidthX*3+iTrenchWidthX*2 ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( ix >= iGapWidthX/2*3+iMaskWidthX*3+iTrenchWidthX*2 && ix < iGapWidthX/2*3+iMaskWidthX*4+iTrenchWidthX*2){
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }else if ( ix >= iGapWidthX/2*3+iMaskWidthX*4+iTrenchWidthX*2 && ix < iGapWidthX/2*3+iMaskWidthX*4+iTrenchWidthX*3 ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( ix >= iGapWidthX/2*3+iMaskWidthX*4+iTrenchWidthX*3 && ix < iGapWidthX/2*3+iMaskWidthX*5+iTrenchWidthX*3){
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }else if ( ix >= iGapWidthX/2*3+iMaskWidthX*5+iTrenchWidthX*3 && ix < iGapWidthX/2*3+iMaskWidthX*5+iTrenchWidthX*4 ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( ix >= iGapWidthX/2*3+iMaskWidthX*5+iTrenchWidthX*4 && ix < iGapWidthX/2*3+iMaskWidthX*6+iTrenchWidthX*4){
+                                                        C1.setStatus(itag, iMaskStat, iNumMask);
+                                                }else if ( ix >= iGapWidthX/2*3+iMaskWidthX*6+iTrenchWidthX*4 && ix < iGapWidthX/2*4+iMaskWidthX*6+iTrenchWidthX*4){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }else if ( meshfile == "single_finite_trench" ){
+                C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
+                for(int iz = 0; iz < Nz; iz++){
+                        for(int iy = 0; iy < Ny; iy++){
+                                for(int ix = 0; ix < Nx; ix++){
+                                        int itag =  ix + ( iy + iz*Ny )*Nx;
+                                        if(  iz < iSubstrateThickZ ){
+                                                //--setting for substrate
+                                                C1.setStatus(itag, iSubstrateStat, iNumMaterial);     //--Si has 8 atoms per unit cell with the dimension of 0.54 nm
+                                        }else if (  iz >= iSubstrateThickZ && iz < (iSubstrateThickZ + iMaskThickZ)  ) {
+                                                if( iy < iGapWidthY/2){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }else if ( iy >= iGapWidthY/2 && iy < iGapWidthY/2+iMaskLength ){
+                                                        if(  ix < iGapWidthX/2 ){
+                                                                //--setting for trench
+                                                                C1.setStatus(itag, iVacuumStat, 0);
+                                                        }else if ( ix >= iGapWidthX/2 && ix < iGapWidthX/2+iMaskWidthX ){
+                                                                //--setting for mask
+                                                                C1.setStatus(itag, iMaskStat, iNumMask);
+                                                        }else if ( ix >= iGapWidthX/2+iMaskWidthX && ix < iGapWidthX/2+iMaskWidthX+iTrenchWidthX ){
+                                                                //--setting for trench
+                                                                C1.setStatus(itag, iVacuumStat, 0);
+                                                        }else if ( ix >= iGapWidthX/2+iMaskWidthX+iTrenchWidthX && ix < iGapWidthX/2+iMaskWidthX*2+iTrenchWidthX ){
+                                                                //--setting for mask
+                                                                C1.setStatus(itag, iMaskStat, iNumMask);
+                                                        }else if ( ix >= iGapWidthX/2+iMaskWidthX*2+iTrenchWidthX && ix < iGapWidthX+iMaskWidthX*2+iTrenchWidthX){
+                                                                //--setting for trench
+                                                                C1.setStatus(itag, iVacuumStat, 0);
+                                                        }
+                                                }else if( iy >= iGapWidthY/2+iMaskLength && iy < iGapWidthY+iMaskLength ){
+                                                        C1.setStatus(itag, iVacuumStat, 0);
+                                                }
+                                        }
+                                }
+                        }
+                }
         }else{
                 string buffer_string_line;
                 string data;
@@ -402,9 +478,7 @@ int main(int argc, char* argv[])
                                         POINT_DATA = stoi(buffer_string_line) ;
                                         delim_data_input.clear();
                                 }
-                                Lx = Nx*dx;
-                                Ly = Ny*dy;
-                                Lz = Nz*dz;
+
                                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
                         }
 
@@ -439,6 +513,10 @@ int main(int argc, char* argv[])
                                                 C1.dNumSiClxs[i][0] = stod(data);
                                         }
                                 }
+                         }else{
+                                 for( int i = 0; i < POINT_DATA; i++){
+                                         C1.dNumSiClxs[i][0] = iNumMaterial;
+                                 }
                          }
 
                          if (data == "SCALARS dNumSiCls float 1"  ){
@@ -449,6 +527,10 @@ int main(int argc, char* argv[])
                                                 C1.dNumSiClxs[i][1] = stod(data);
                                         }
                                 }
+                         }else{
+                                 for( int i = 0; i < POINT_DATA; i++){
+                                         C1.dNumSiClxs[i][1] = 0;
+                                 }
                          }
 
                          if (data == "SCALARS dNumSiCl2s float 1"  ){
@@ -459,6 +541,10 @@ int main(int argc, char* argv[])
                                                 C1.dNumSiClxs[i][2] = stod(data);
                                         }
                                 }
+                         }else{
+                                 for( int i = 0; i < POINT_DATA; i++){
+                                         C1.dNumSiClxs[i][2] = 0;
+                                 }
                          }
 
                          if (data == "SCALARS dNumSiCl3s float 1"  ){
@@ -469,6 +555,10 @@ int main(int argc, char* argv[])
                                                 C1.dNumSiClxs[i][3] = stod(data);
                                         }
                                 }
+                         }else{
+                                 for( int i = 0; i < POINT_DATA; i++){
+                                         C1.dNumSiClxs[i][3] = 0;
+                                 }
                          }
 	            }
 	            in.close();
@@ -527,22 +617,14 @@ int main(int argc, char* argv[])
 
         /*Pre-calculation of total particle number, time interval,  and output frequency*/
         double FluxArea = Lx*Ly;
-        double TotalRealTime;
         double RealTimeInterval = 1/(TotalFlux*1E4)/FluxArea;  //--convert unit from cm^-2 to m^-2
         int TotalParticle;
-        string yes_or_no = "yes";
         cout  << "The area of incidence (A) = " << FluxArea << " m^2" << endl;
         cout << "The total flux = "<< TotalFlux*1E4 << " m^-2 s^-1" << endl;
         //cout << "The number of atoms in a cell (Ns) = " << iNumMaterial << endl;
         cout << "The real time interval between steps (dt) = " << "1/(total flux * area of incidence) = " << RealTimeInterval << endl;
-        do{
-                cout << "How many seconds in real time would you like to simulate? " ;
-                cin >> TotalRealTime;
-                TotalParticle = int(TotalRealTime/RealTimeInterval);
-                cout << "The total number of steps in the simulation will be : " << TotalParticle << endl;
-                cout << "Is that OK with you (yes/no)? " ;
-                cin >> yes_or_no;
-        } while ( yes_or_no == "no");
+        TotalParticle = int(TotalRealTime/RealTimeInterval);
+        cout << "The total number of steps in the simulation will be : " << TotalParticle << endl;
         int FileIndex = 0;
         int frequency = int(TotalParticle/OutputFileNumber);
         int particleNumber = 0;
@@ -568,8 +650,6 @@ int main(int argc, char* argv[])
 
         #pragma omp parallel for
         for (int indexParticle = 0;   indexParticle < TotalParticle;   indexParticle++){
-
-
 
                 particle P1;                                            //--Generate a particle
                 P1.setInitialType( GenerationProbIncidentParticle );  //--choose a particular type of particle

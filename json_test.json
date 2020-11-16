@@ -2,15 +2,18 @@
   "mesh":
   {
     "geometry":                    "3D",
-    "meshfile":                    "none",
+    "meshfile":                    "single_finite_trench",
     "cell_size":                   1, "unit":"nm",
-    "domain_size_x":               300,  
-    "domain_size_y":               20,
+    "domain_size_x":               310,  
+    "domain_size_y":               500,
     "domain_size_z":               1000,
     "substrate_thickness":         900,
     "mask_thickness":              50,
-    "trench_width":                100,
-    "mask_width":                  200,
+    "trench_width":                50,
+    "mask_width":                  30,
+    "mask_length":                 400,
+    "gap_width_x":                 200,
+    "gap_width_y":                 100,
     "atom_number_in_material":     2,
     "atom_number_in_mask":	   50,
     "surface_searching_radius":    4   	    
@@ -20,8 +23,7 @@
   {
     "type_name":	            "VTK",
     "vtkDataType":                  "STRUCTURED_POINTS",
-    "output_file_directory":
-    "/home/crpan/plasma.ti/RAISE/project_feature_profile_simulation_particle_volume_v3/feature_profile/trenchWidth100_neutral_sigma_0.8/",
+    "output_file_directory":        "/home/crpan/plasma.ti/RAISE/project_feature_profile_simulation_particle_volume_v3/feature_profile/single_finite_trench/",
     "output_file_name":             "feature_profile-",
     "output_file_number":           20,
     "PRINT_SI":                     false,   
@@ -42,8 +44,8 @@
     "IEADF_data_directory":         "/home/crpan/plasma.ti/RAISE/project_feature_profile_simulation_particle_volume_v3/IEADF_data/",
     "NEUTRAL_THETA_SCALING":        false, 
     "ION_THETA_SCALING":            false, 
-    "neutral_theta_scaling_factor": 0.8,
-    "ion_theta_scaling_factor":     0.4,          
+    "neutral_theta_scaling_factor": 1.0,
+    "ion_theta_scaling_factor":     1.0,          
     "reemission_cosine_law_power":  1.0,
     "particle_size_factor":         0.2
   },
