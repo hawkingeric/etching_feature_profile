@@ -944,6 +944,7 @@ int main(int argc, char* argv[])
                         }else if ( CountPointInSolid == 1){
                                 for (int i = 0; i < 6 ; i++){
                                         if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
+                                                old_itag = itag;
                                                 itag = itag_six_point[i];
                                         }
                                 }
@@ -1092,7 +1093,7 @@ int main(int argc, char* argv[])
                                                 }
 
                                         }else if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
-                                                C1.redeposition(p0_redeposition, P1.ParticleType, itag, &ReactionExecution, &ReactionIndex);
+                                                C1.redeposition(p0_redeposition, P1.ParticleType, old_itag, &ReactionExecution, &ReactionIndex);
 
                                                 if (ReactionExecution == 0){
                                                         P1.speed = P1.setInitialSpeed( Temperature, P1.mass, SpeedcutoffThermalParicle[P1.ParticleType]  );
