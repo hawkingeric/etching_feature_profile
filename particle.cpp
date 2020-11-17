@@ -173,14 +173,15 @@ void particle::ReemittedWithNewDirection(double* normSurfaceNormal, double speed
         }
         beta = acos(normSurfaceNormal[Z_dir]);
         //--Use the formula proposed by Kushner
-        /*
+
         particle::Vel[X_dir] = speed*(   cos(beta)*cos(alpha)*sin(theta)*cos(phi)+cos(beta)*sin(alpha)*cos(theta)-sin(beta)*sin(theta)*sin(phi)   );
         particle::Vel[Y_dir] = speed*(   sin(beta)*cos(alpha)*sin(theta)*cos(phi)+sin(beta)*sin(alpha)*cos(theta)+cos(beta)*sin(theta)*sin(phi)   );
         particle::Vel[Z_dir] = speed*( -sin(alpha)*sin(theta)*cos(phi)+cos(alpha)*cos(theta)                                                    );
-        */
+
         //--Use the formula that I derived
+        /*
         particle::Vel[X_dir] = speed*( -cos(beta)*sin(alpha)*sin(theta)*sin(phi)+cos(alpha)*sin(theta)*cos(phi)+sin(beta)*sin(alpha)*cos(theta)   );
         particle::Vel[Y_dir] = speed*(   cos(beta)*cos(alpha)*sin(theta)*sin(phi)+sin(alpha)*sin(theta)*cos(phi)-sin(beta)*cos(alpha)*cos(theta)   );
         particle::Vel[Z_dir] = speed*(   sin(beta)*sin(theta)*sin(phi)+cos(beta)*cos(theta)    );
-
+        */
 }
