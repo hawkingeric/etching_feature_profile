@@ -2,7 +2,7 @@
   "mesh":
   {
     "geometry":                    "3D",
-    "meshfile":                    "single_long_trench",
+    "meshfile":                    "/home/crpan/etching_feature_profile/single_long_trench/feature_profile-0.vtk",
     "cell_size":                   1, "unit":"nm",
     "domain_size_x":               300,  
     "domain_size_y":               20,
