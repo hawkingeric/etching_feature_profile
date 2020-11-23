@@ -179,8 +179,8 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                         if (  cell::iStatus[cell::iID_NBR[itagNeighbor][4]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][12]] == iVacuumStat ||
                                 cell::iStatus[cell::iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][14]] == iVacuumStat ||
                                 cell::iStatus[cell::iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][22]] == iVacuumStat){
-                                Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), cell::dNumMaterial[itagNeighbor]});
-                                //Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), 1.0});
+                                //Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), cell::dNumMaterial[itagNeighbor]});
+                                Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), 1.0});
                         }
                 }
         }
