@@ -6,6 +6,7 @@
 #include "particle.h"
 #include "json.hpp"
 #include "rand.h"
+#include "queue"
 
 #define N 100
 #define numBlocks 1
@@ -593,8 +594,6 @@ int main(int argc, char* argv[])
         GenerationProbIncidentParticle.push_back(dArIonType/TotalFlux);
 
 
-
-
         /*Pre-calculation of particle size and initialization of six point particle*/
         double SixPointParticle [6][3] = {  {-1, 0, 0}, {+1, 0, 0}, {0, -1, 0}, {0, +1, 0}, {0, 0, -1}, {0, 0, +1} };
         double ParticleSizeX, ParticleSizeY, ParticleSizeZ;
@@ -671,9 +670,27 @@ int main(int argc, char* argv[])
                 double dPos_six_point [6][3] ;                          //--dPos (x, y, z) of particle's six neighboring points
                 int iPos_six_point [6][3] ;                             //--iPos (x, y, z) of particle's siz neighboring points
                 int CountPointInSolid;                               //--to count how many point of a seven-point molecule is on solid cell
-                double normEmittedNormal [3];                         //--normalized velocity for emitted particle
-                double dPos_EmittedParticle [3];                           //--dPos for emitted particle
-                int iPos_EmittedParticle [3];                              //--iPos for emitted particle
+                queue<int> EmittedType ;
+                queue<double> normEmittedNormal_X_dir ;                         //--normalized velocity for emitted particle
+                queue<double> normEmittedNormal_Y_dir ;                         //--normalized velocity for emitted particle
+                queue<double> normEmittedNormal_Z_dir ;                         //--normalized velocity for emitted particle
+                queue<double> dPos_X_dir_EmittedParticle ;                           //--dPos for emitted particle
+                queue<double> dPos_Y_dir_EmittedParticle ;                           //--dPos for emitted particle
+                queue<double> dPos_Z_dir_EmittedParticle ;                           //--dPos for emitted particle
+                queue<int> iPos_X_dir_EmittedParticle;                              //--iPos for emitted particle
+                queue<int> iPos_Y_dir_EmittedParticle;                              //--iPos for emitted particle
+                queue<int> iPos_Z_dir_EmittedParticle;                              //--iPos for emitted particle
+                EmittedType = queue<int>();
+                double normEmittedNormal [3];
+                normEmittedNormal_X_dir = queue<double>();
+                normEmittedNormal_Y_dir = queue<double>();
+                normEmittedNormal_Z_dir = queue<double>();
+                dPos_X_dir_EmittedParticle = queue<double>();
+                dPos_Y_dir_EmittedParticle = queue<double>();
+                dPos_Z_dir_EmittedParticle = queue<double>();
+                iPos_X_dir_EmittedParticle = queue<int>();
+                iPos_Y_dir_EmittedParticle = queue<int>();
+                iPos_Z_dir_EmittedParticle = queue<int>();
                 double prob_of_energy [10]= {0.0};  //--used in ion enhanced reaction, the energy-dependent reaction probability
                 double prob_of_angle [10]= {0.0};  //--used in ion enhanced reaction, the angle-dependent reaction probability
                 double accerlation [3];
@@ -695,7 +712,10 @@ int main(int argc, char* argv[])
                                                                 PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
                         }
                 }
-
+                /*
+                cout << "indexParticle = " << indexParticle << endl;
+                cout << "particle type = " << P1.ParticleType << endl;
+                */
 
                 if (P1.ParticleType == 0){
                         continue;
@@ -765,27 +785,41 @@ int main(int argc, char* argv[])
                         //--check if particle has been deactivated
                         if(P1.ParticleType == 0){
 
-                                if (EmittedParticle == 0){
+                                if (EmittedType.empty()){
                                         break;
                                 }else{
-                                        P1.ParticleType = EmittedParticle;
-                                        if (P1.ParticleType == iSiClgType){
-                                                P1.mass = MassSilicon+MassChlorine;
-                                        }else if ( P1.ParticleType == iSiCl2gType){
-                                                P1.mass = MassSilicon+2*MassChlorine;
-                                        }else if ( P1.ParticleType == iSiCl3gType){
-                                                P1.mass = MassSilicon+3*MassChlorine;
-                                        }else if ( P1.ParticleType == iSiCl4gType){
-                                                EmittedParticle = 0;
-                                                break;
-                                        }
 
-                                        P1.dPos[X_dir] = dPos_EmittedParticle[X_dir];
-                                        P1.dPos[Y_dir] = dPos_EmittedParticle[Y_dir];
-                                        P1.dPos[Z_dir] = dPos_EmittedParticle[Z_dir];
-                                        P1.iPos[X_dir] = iPos_EmittedParticle[X_dir];
-                                        P1.iPos[Y_dir] = iPos_EmittedParticle[Y_dir];
-                                        P1.iPos[Z_dir] = iPos_EmittedParticle[Z_dir];
+                                        if (  EmittedType.front() == iSiClgType){
+                                                P1.mass = MassSilicon+MassChlorine;
+                                        }else if ( EmittedType.front() == iSiCl2gType){
+                                                P1.mass = MassSilicon+2*MassChlorine;
+                                        }else if ( EmittedType.front() == iSiCl3gType){
+                                                P1.mass = MassSilicon+3*MassChlorine;
+                                        }else{
+                                                EmittedType.pop();
+                                                dPos_X_dir_EmittedParticle.pop();
+                                                dPos_Y_dir_EmittedParticle.pop();
+                                                dPos_Z_dir_EmittedParticle.pop();
+                                                iPos_X_dir_EmittedParticle.pop();
+                                                iPos_Y_dir_EmittedParticle.pop();
+                                                iPos_Z_dir_EmittedParticle.pop();
+                                                normEmittedNormal_X_dir.pop();
+                                                normEmittedNormal_Y_dir.pop();
+                                                normEmittedNormal_Z_dir.pop();
+                                                P1.ParticleType = 0;
+                                                continue;
+                                        }
+                                        P1.ParticleType = EmittedType.front();
+                                        P1.dPos[X_dir] = dPos_X_dir_EmittedParticle.front();
+                                        P1.dPos[Y_dir] = dPos_Y_dir_EmittedParticle.front();
+                                        P1.dPos[Z_dir] = dPos_Z_dir_EmittedParticle.front();
+                                        P1.iPos[X_dir] = iPos_X_dir_EmittedParticle.front();
+                                        P1.iPos[Y_dir] = iPos_Y_dir_EmittedParticle.front();
+                                        P1.iPos[Z_dir] = iPos_Z_dir_EmittedParticle.front();
+                                        normEmittedNormal[X_dir] = normEmittedNormal_X_dir.front();
+                                        normEmittedNormal[Y_dir] = normEmittedNormal_Y_dir.front();
+                                        normEmittedNormal[Z_dir] = normEmittedNormal_Z_dir.front();
+
                                         P1.speed = P1.setInitialSpeed( Temperature,   P1.mass,   SpeedcutoffThermalParicle[P1.ParticleType]  );
                                         P1.energy = 0.5*P1.mass*P1.speed*P1.speed;
                                         P1.theta = P1.setReemittedTheta(ReemissionCosineLawPower); //--theta is with respect to surface normal
@@ -793,8 +827,18 @@ int main(int argc, char* argv[])
                                         //--modify particle reflected velocity by new speed, theta, and phi
                                         P1.ReemittedWithNewDirection(normEmittedNormal, P1.speed, P1.theta, P1.phi) ;
                                         P1.PropagationTimeInterval = dx/P1.speed;
-                                        EmittedParticle = 0;
-                                        //EmitTimes++;
+
+                                        EmittedType.pop();
+                                        dPos_X_dir_EmittedParticle.pop();
+                                        dPos_Y_dir_EmittedParticle.pop();
+                                        dPos_Z_dir_EmittedParticle.pop();
+                                        iPos_X_dir_EmittedParticle.pop();
+                                        iPos_Y_dir_EmittedParticle.pop();
+                                        iPos_Z_dir_EmittedParticle.pop();
+                                        normEmittedNormal_X_dir.pop();
+                                        normEmittedNormal_Y_dir.pop();
+                                        normEmittedNormal_Z_dir.pop();
+
                                 }
                         }
 
@@ -944,6 +988,7 @@ int main(int argc, char* argv[])
                         }else if ( CountPointInSolid == 1){
                                 for (int i = 0; i < 6 ; i++){
                                         if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
+                                                old_itag = itag;
                                                 itag = itag_six_point[i];
                                         }
                                 }
@@ -1059,15 +1104,16 @@ int main(int argc, char* argv[])
                                                 }
 
                                                 if (ReactionExecution == 1 && EmittedParticle != 0){
-                                                        dPos_EmittedParticle[X_dir] = P1.dPos[X_dir];
-                                                        dPos_EmittedParticle[Y_dir] = P1.dPos[Y_dir];
-                                                        dPos_EmittedParticle[Z_dir] = P1.dPos[Z_dir];
-                                                        iPos_EmittedParticle[X_dir] = P1.iPos[X_dir];
-                                                        iPos_EmittedParticle[Y_dir] = P1.iPos[Y_dir];
-                                                        iPos_EmittedParticle[Z_dir] = P1.iPos[Z_dir];
-                                                        normEmittedNormal[X_dir] = normSurfaceNormal[X_dir];
-                                                        normEmittedNormal[Y_dir] = normSurfaceNormal[Y_dir];
-                                                        normEmittedNormal[Z_dir] = normSurfaceNormal[Z_dir];
+                                                        EmittedType.push(EmittedParticle);
+                                                        dPos_X_dir_EmittedParticle.push(P1.dPos[X_dir]);
+                                                        dPos_Y_dir_EmittedParticle.push(P1.dPos[Y_dir]);
+                                                        dPos_Z_dir_EmittedParticle.push(P1.dPos[Z_dir]);
+                                                        iPos_X_dir_EmittedParticle.push(P1.iPos[X_dir]);
+                                                        iPos_Y_dir_EmittedParticle.push(P1.iPos[Y_dir]);
+                                                        iPos_Z_dir_EmittedParticle.push(P1.iPos[Z_dir]);
+                                                        normEmittedNormal_X_dir.push(normSurfaceNormal[X_dir]);
+                                                        normEmittedNormal_Y_dir.push(normSurfaceNormal[Y_dir]);
+                                                        normEmittedNormal_Z_dir.push(normSurfaceNormal[Z_dir]);
                                                 }
 
                                                 P1.ParticleType = ReflectedParticle;
@@ -1092,7 +1138,8 @@ int main(int argc, char* argv[])
                                                 }
 
                                         }else if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
-                                                C1.redeposition(p0_redeposition, P1.ParticleType, itag, &ReactionExecution, &ReactionIndex);
+
+                                                C1.redeposition(p0_redeposition, P1.ParticleType, old_itag, &ReactionExecution, &ReactionIndex);
 
                                                 if (ReactionExecution == 0){
                                                         P1.speed = P1.setInitialSpeed( Temperature, P1.mass, SpeedcutoffThermalParicle[P1.ParticleType]  );

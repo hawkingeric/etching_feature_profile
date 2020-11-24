@@ -133,8 +133,6 @@ void particle::ReflectedWithNewEnergy(double* normReflectedVelocity, double* Gra
         double Energy = particle::energy*Joule_to_eV;
         double Mass = particle::mass;
 
-
-
         if ( Energy < *epsilon_0 ){
                 EnergyDependentScalingFactor = 0;
         }else if ( Energy >= *epsilon_0 && Energy <= *epsilon_s ){
@@ -159,28 +157,40 @@ void particle::ReflectedWithNewEnergy(double* normReflectedVelocity, double* Gra
 
 void particle::ReemittedWithNewDirection(double* normSurfaceNormal, double speed, double theta, double phi){
         double alpha;  //--azimusal angle of surface normal vector
-        double beta;  //--polar angle of surface normal vector;
+        double beta;   //--polar angle of surface normal vector
         double sqrt_of_Nxsquare_plus_Nysquare = sqrt(  pow(normSurfaceNormal[X_dir], 2.0)+pow(normSurfaceNormal[Y_dir], 2.0)  );
-        if( sqrt_of_Nxsquare_plus_Nysquare == 0 ){
+        if(  sqrt_of_Nxsquare_plus_Nysquare == 0 ){
                 alpha = 0;
+                beta = 0;
         }else{
-                //alpha = acos(norm_surface_N[X_dir] / sqrt( pow(norm_surface_N[X_dir],2.0)+pow(norm_surface_N[Y_dir],2.0)  )   );
-                if ( normSurfaceNormal[X_dir] >= 0){
-                        alpha =   acos(  -normSurfaceNormal[Y_dir] /sqrt_of_Nxsquare_plus_Nysquare    );
-                }else if ( normSurfaceNormal[X_dir] < 0){
-                        alpha = -acos(  -normSurfaceNormal[Y_dir] / sqrt_of_Nxsquare_plus_Nysquare   );
-                }
+                alpha = acos(normSurfaceNormal[X_dir] / sqrt_of_Nxsquare_plus_Nysquare );
+                beta = acos(normSurfaceNormal[Z_dir]);
         }
-        beta = acos(normSurfaceNormal[Z_dir]);
+
+        //--Use the formula that I derived
+        particle::Vel[X_dir] = speed*(   cos(alpha)*cos(beta)*sin(theta)*cos(phi)+cos(alpha)*sin(beta)*cos(theta)-sin(alpha)*sin(theta)*sin(phi)   );
+        particle::Vel[Y_dir] = speed*(   sin(alpha)*cos(beta)*sin(theta)*cos(phi)+sin(alpha)*sin(beta)*cos(theta)+cos(alpha)*sin(theta)*sin(phi)   );
+        particle::Vel[Z_dir] = speed*( -sin(beta)*sin(theta)*cos(phi)+cos(beta)*cos(theta)  );
+
+
         //--Use the formula proposed by Kushner
         /*
         particle::Vel[X_dir] = speed*(   cos(beta)*cos(alpha)*sin(theta)*cos(phi)+cos(beta)*sin(alpha)*cos(theta)-sin(beta)*sin(theta)*sin(phi)   );
         particle::Vel[Y_dir] = speed*(   sin(beta)*cos(alpha)*sin(theta)*cos(phi)+sin(beta)*sin(alpha)*cos(theta)+cos(beta)*sin(theta)*sin(phi)   );
-        particle::Vel[Z_dir] = speed*( -sin(alpha)*sin(theta)*cos(phi)+cos(alpha)*cos(theta)                                                    );
+        particle::Vel[Z_dir] = speed*( -sin(alpha)*sin(theta)*cos(phi)+cos(alpha)*cos(theta)  );
         */
-        //--Use the formula that I derived
-        particle::Vel[X_dir] = speed*( -cos(beta)*sin(alpha)*sin(theta)*sin(phi)+cos(alpha)*sin(theta)*cos(phi)+sin(beta)*sin(alpha)*cos(theta)   );
-        particle::Vel[Y_dir] = speed*(   cos(beta)*cos(alpha)*sin(theta)*sin(phi)+sin(alpha)*sin(theta)*cos(phi)-sin(beta)*cos(alpha)*cos(theta)   );
-        particle::Vel[Z_dir] = speed*(   sin(beta)*sin(theta)*sin(phi)+cos(beta)*cos(theta)    );
+
+        /*
+        if (normSurfaceNormal[Z_dir] < 0){
+                cout <<  "normSurfaceNormal = " << normSurfaceNormal[X_dir] << " " << normSurfaceNormal[Y_dir] << " " << normSurfaceNormal[Z_dir]<<endl;
+                cout << "position = " << particle::iPos[X_dir] << " " << particle::iPos[Y_dir] << " " << particle::iPos[Z_dir] << endl;
+                cout << "type = " << particle::ParticleType << endl;
+                cin >> alpha ;
+        }
+        */
+        //cout << "norm = " << pow(normSurfaceNormal[X_dir],2) + pow(normSurfaceNormal[Y_dir],2) + pow(normSurfaceNormal[Z_dir],2)<<endl;
+        //cin.get();
+
+
 
 }
