@@ -10,8 +10,8 @@
    cd single_long_trench    or
    cd array_set
 5. Compile with g++  
-   g++ ../{*.cpp}  
-   g++ -o etching_openMP.o -fopenmp ../*.cpp
+   g++ ../\*.cpp  
+   g++ -o etching_openMP.o -fopenmp ../\*.cpp
 6. JSON file "json_test.json" contains the input setting. Please edit it appropriately for your own purpose.
    1. Specify your output file directory under tag "output_file_directory".
    2. Directory "IEADF_data" contains the ion-energy-angular distribution function as needed.
