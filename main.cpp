@@ -439,9 +439,11 @@ int main(int argc, char* argv[])
 	            while (!in.eof())
                 {
                         getline(in, data);
+                        //cout << data << endl;
                         if (data == "ASCII"){
                                 getline(in, data);
                                 istringstream delim_data_input(  data  );
+
                                 delim_data_input >> buffer_string_line;
                                 if( buffer_string_line == "DATASET")    delim_data_input >> buffer_string_line;
                                 string meshDATASET =  buffer_string_line;
@@ -482,16 +484,22 @@ int main(int argc, char* argv[])
                                 }
 
                                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
+                                //cout << "Ny = " << Ny << endl;
+                                //cout << "Nz = " << Nz << endl;
+                                //cout << "dx = " << dx << endl;
+                                //cout << "dy = " << dy << endl;
+                                //cout << "dz = " << dz << endl;
+                                //cout << C1.iNumCell << endl;
+
                         }
 
+                        //cout << data << endl;
                         if (data == "SCALARS dNumMaterial float 1"  ){
                                 getline(in, data);
                                 if ( data == "LOOKUP_TABLE default" ){
                                         for( int i = 0; i < POINT_DATA; i++){
                                                 getline(in, data);
                                                 array_NumMaterial.push_back(stoi(data));
-                                                //cout << "data = " << stoi(data) <<endl;
-                                                //cin.get();
                                         }
                                 }
                          }
@@ -502,7 +510,11 @@ int main(int argc, char* argv[])
                                         for( int i = 0; i < POINT_DATA; i++){
                                                 getline(in, data);
                                                 status = stoi(data);
-                                                C1.setStatus(i, status, array_NumMaterial[i]);
+                                                if ( status == iVacuumStat || status == iSubstrateStat ){
+                                                        C1.setStatus(i, status, array_NumMaterial[i]);
+                                                }else if ( status == iMaskStat){
+                                                        C1.setStatus(i, status, iNumMask);
+                                                }
                                         }
                                 }
                          }
@@ -512,27 +524,20 @@ int main(int argc, char* argv[])
                                 if ( data == "LOOKUP_TABLE default" ){
                                         for( int i = 0; i < POINT_DATA; i++){
                                                 getline(in, data);
-                                                C1.dNumSiClxs[i][0] = stod(data);
+                                                C1.dNumSiClxs[i][0] = stod(data)*iNumMaterial;
                                         }
                                 }
-                         }else{
-                                 for( int i = 0; i < POINT_DATA; i++){
-                                         C1.dNumSiClxs[i][0] = iNumMaterial;
-                                 }
                          }
+
 
                          if (data == "SCALARS dNumSiCls float 1"  ){
                                 getline(in, data);
                                 if ( data == "LOOKUP_TABLE default" ){
                                         for( int i = 0; i < POINT_DATA; i++){
                                                 getline(in, data);
-                                                C1.dNumSiClxs[i][1] = stod(data);
+                                                C1.dNumSiClxs[i][1] = stod(data)*iNumMaterial;
                                         }
                                 }
-                         }else{
-                                 for( int i = 0; i < POINT_DATA; i++){
-                                         C1.dNumSiClxs[i][1] = 0;
-                                 }
                          }
 
                          if (data == "SCALARS dNumSiCl2s float 1"  ){
@@ -540,13 +545,9 @@ int main(int argc, char* argv[])
                                 if ( data == "LOOKUP_TABLE default" ){
                                         for( int i = 0; i < POINT_DATA; i++){
                                                 getline(in, data);
-                                                C1.dNumSiClxs[i][2] = stod(data);
+                                                C1.dNumSiClxs[i][2] = stod(data)*iNumMaterial;
                                         }
                                 }
-                         }else{
-                                 for( int i = 0; i < POINT_DATA; i++){
-                                         C1.dNumSiClxs[i][2] = 0;
-                                 }
                          }
 
                          if (data == "SCALARS dNumSiCl3s float 1"  ){
@@ -554,16 +555,18 @@ int main(int argc, char* argv[])
                                 if ( data == "LOOKUP_TABLE default" ){
                                         for( int i = 0; i < POINT_DATA; i++){
                                                 getline(in, data);
-                                                C1.dNumSiClxs[i][3] = stod(data);
+                                                C1.dNumSiClxs[i][3] = stod(data)*iNumMaterial;
                                         }
                                 }
-                         }else{
-                                 for( int i = 0; i < POINT_DATA; i++){
-                                         C1.dNumSiClxs[i][3] = 0;
-                                 }
                          }
 	            }
 	            in.close();
+/*
+	            cout << "C1.dNumSiClxs[0][0]" << C1.dNumSiClxs[0][0] << endl;
+	            cout << "C1.dNumSiClxs[0][1]" << C1.dNumSiClxs[0][1] << endl;
+	            cout << "C1.dNumSiClxs[0][2]" << C1.dNumSiClxs[0][2] << endl;
+	            cout << "C1.dNumSiClxs[0][3]" << C1.dNumSiClxs[0][3] << endl;
+*/
         }
 
 
@@ -1053,6 +1056,9 @@ int main(int argc, char* argv[])
 
                                         if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &ReactionIndex);
+
+
+
                                                 if (ReactionExecution == 0){
                                                         P1.speed = P1.setInitialSpeed( Temperature,   P1.mass,   SpeedcutoffThermalParicle[P1.ParticleType]  );
                                                         P1.energy = 0.5*P1.mass*P1.speed*P1.speed;
@@ -1103,6 +1109,18 @@ int main(int argc, char* argv[])
                                                         */
                                                 }
 
+                                                /*
+                                                if( GrazingAngle < 30){
+                                                        cout << "type = " << P1.ParticleType << endl;
+                                                        cout << "velocity = " << P1.Vel[X_dir] << " " << P1.Vel[Y_dir] << " " << P1.Vel[Z_dir] << endl;
+                                                        cout << "position = " << P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
+                                                        cout << "grazing angle = " << GrazingAngle << endl;
+                                                        cout << "normSurfaceNormal = "<< normSurfaceNormal[X_dir] << " " << normSurfaceNormal[Y_dir] << " " << normSurfaceNormal[Z_dir] << endl;
+                                                        cout << "normReflectedVelocity = "<< normReflectedVelocity[X_dir] << " " << normReflectedVelocity[Y_dir] << " " << normReflectedVelocity[Z_dir] << endl;
+                                                       cin.get();
+                                                }
+                                                */
+
                                                 if (ReactionExecution == 1 && EmittedParticle != 0){
                                                         EmittedType.push(EmittedParticle);
                                                         dPos_X_dir_EmittedParticle.push(P1.dPos[X_dir]);
@@ -1120,6 +1138,34 @@ int main(int argc, char* argv[])
                                                 if (P1.ParticleType == 0){
                                                         continue;
                                                 }else{
+                                                        /*
+                                                        if( GrazingAngle > 30){
+                                                                cout << "type = " << P1.ParticleType << endl;
+                                                                cout << "velocity = " << P1.Vel[X_dir] << " " << P1.Vel[Y_dir] << " " << P1.Vel[Z_dir] << endl;
+                                                                cout << "position = " << P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
+                                                                cout << "grazing angle = " << GrazingAngle << endl;
+                                                                cout << "speed = " << P1.speed << endl;
+                                                                cout << "normSurfaceNormal = "<< normSurfaceNormal[X_dir] << " " << normSurfaceNormal[Y_dir] << " " << normSurfaceNormal[Z_dir] << endl;
+                                                                cout << "normReflectedVelocity = "<< normReflectedVelocity[X_dir] << " " << normReflectedVelocity[Y_dir] << " " << normReflectedVelocity[Z_dir] << endl;
+
+                                                                if (P1.ParticleType == iClIonType){
+                                                                        P1.mass = MassChlorine;
+                                                                }else if (P1.ParticleType == iCl2IonType){
+                                                                        P1.mass = MassChlorine*2;
+                                                                }else if (P1.ParticleType == iArIonType){
+                                                                        P1.mass = MassArgon;
+                                                                }
+
+                                                                //--modify particle energy, speed, and reflected velocity
+                                                                P1.ReflectedWithNewEnergy(normReflectedVelocity, &GrazingAngle, &epsilon_0, &epsilon_s, &theta_0, &gamma_0);
+                                                                cout << "speed after = " << P1.speed << endl;
+                                                                cout << "velocity after = " << P1.Vel[X_dir] << " " << P1.Vel[Y_dir] << " " << P1.Vel[Z_dir] << endl;
+
+
+                                                                cin.get();
+                                                       }
+                                                       */
+
                                                         if (P1.ParticleType == iClIonType){
                                                                 P1.mass = MassChlorine;
                                                         }else if (P1.ParticleType == iCl2IonType){
@@ -1127,8 +1173,13 @@ int main(int argc, char* argv[])
                                                         }else if (P1.ParticleType == iArIonType){
                                                                 P1.mass = MassArgon;
                                                         }
+
                                                         //--modify particle energy, speed, and reflected velocity
                                                         P1.ReflectedWithNewEnergy(normReflectedVelocity, &GrazingAngle, &epsilon_0, &epsilon_s, &theta_0, &gamma_0);
+
+
+
+
                                                         if ( P1.speed == 0){
                                                                 P1.ParticleType = 0;
                                                         }else{
