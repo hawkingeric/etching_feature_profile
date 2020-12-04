@@ -14,8 +14,8 @@
     "mask_length":                 400,
     "gap_width_x":                 200,
     "gap_width_y":                 100,
-    "atom_number_in_material":     2,
-    "atom_number_in_mask":	   50,
+    "atom_number_in_material":     1,
+    "atom_number_in_mask":	   10,
     "surface_searching_radius":    4   	    
   },
   
@@ -23,7 +23,7 @@
   {
     "type_name":	            "VTK",
     "vtkDataType":                  "STRUCTURED_POINTS",
-    "output_file_directory":        "/home/crpan/etching_feature_profile/array_set/",
+    "output_file_directory":        "/work1/crpan/etching_feature_profile/array_set/",
     "output_file_name":             "feature_profile-",
     "output_file_number":           20,
     "PRINT_SI":                     false,   
@@ -42,13 +42,13 @@
     "dClIonFlux":                   1.0E16, "unit":"cm^-2 s^-1",
     "dCl2IonFlux":                  8.3E15, "unit":"cm^-2 s^-1",
     "dArIonFlux":                   6.1E14, "unit":"cm^-2 s^-1",
-    "IEADF_data_directory":         "/home/crpan/etching_feature_profile/IEADF_data/",
+    "IEADF_data_directory":         "/work1/crpan/etching_feature_profile/IEADF_data/",
     "NEUTRAL_THETA_SCALING":        false, 
     "ION_THETA_SCALING":            false, 
     "neutral_theta_scaling_factor": 1.0,
     "ion_theta_scaling_factor":     1.0,          
-    "reemission_cosine_law_power":  1.0,
-    "particle_size_factor":         0.2
+    "reemission_cosine_law_power":  100,
+    "particle_size_factor":         0.5
   },
 
   "surface_reactions":
