@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
         vector<double>  cumulativeflux_ClIon, cumulativeflux_Cl2Ion, cumulativeflux_ArIon, IonEnergy, IonAngle;
         bool NEUTRAL_THETA_SCALING, ION_THETA_SCALING;
         double Temperature, dClRadicalFlux, dClIonFlux, dCl2IonFlux, dArIonType, NeutralThetaScalingFactor, IonThetaScalingFactor,
-                        ParticleSizeFactor, ReemissionCosineLawPower, TotalRealTime;
+                        ParticleSizeFactor, ReemissionCosineLawPower, TotalRealTime, FileTimeInterval;
         int PropagationTimestepNumber;
 
         //--parameters read from surface ractions
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
                         PRINT_SICl = config["PRINT_SICl"];
                         PRINT_SICl2 = config["PRINT_SICl2"];
                         PRINT_SICl3 = config["PRINT_SICl3"];
-
+                        FileTimeInterval = config["file_time_interval"];
                 }else{
 	                    cout << "No output_setting tag in input file! " << endl ;
 	                    exit( 1 ) ;
@@ -290,6 +290,7 @@ int main(int argc, char* argv[])
                 cout << "  PRINT_SICl                   =    " << PRINT_SICl << endl ;
                 cout << "  PRINT_SICl2                  =    " << PRINT_SICl2 << endl ;
                 cout << "  PRINT_SICl3                  =    " << PRINT_SICl3 << endl ;
+                cout << "  file_time_interval           =    " << FileTimeInterval << endl;
                 cout << endl;
                 cout << "Simulation conditions:" << endl ;
                 cout << "  total_real_time              =    "  << TotalRealTime << endl;
@@ -620,104 +621,82 @@ int main(int argc, char* argv[])
 
         /*Pre-calculation of total particle number, time interval,  and output frequency*/
         double FluxArea = Lx*Ly;
-        double RealTimeInterval = 1/(TotalFlux*1E4)/FluxArea;  //--convert unit from cm^-2 to m^-2
-        long long int TotalParticle;
+        double material_density = 5.0*1E28; //--density of Si in unit of m^-3
+
+        double ParticleTimeInterval = material_density*dx*dy*dz/(TotalFlux*1E4)/FluxArea;  //--convert flux unit from cm^-2 to m^-2
+        long long  int TotalParticleInAFile;
         cout  << "The area of incidence (A) = " << FluxArea << " m^2" << endl;
-        cout << "The total flux = "<< TotalFlux*1E4 << " m^-2 s^-1" << endl;
-        //cout << "The number of atoms in a cell (Ns) = " << iNumMaterial << endl;
-        cout << "The real time interval between steps (dt) = " << "1/(total flux * area of incidence) = " << RealTimeInterval << endl;
-        TotalParticle = int(TotalRealTime/RealTimeInterval);
-        cout << "The total number of steps in the simulation will be : " << TotalParticle << endl;
+        cout << "The total flux (J) = "<< TotalFlux*1E4 << " m^-2 s^-1" << endl;
+        cout << "The number of atoms in a pseudo-particle (Ns) = " << int(material_density*dx*dy*dz) << endl;
+        cout << "The real time interval between each pseudo-particle particle (dt) = " << "Ns/(J*A) = " << ParticleTimeInterval << endl;
+        int TotalOutputFile;
+        TotalOutputFile = TotalRealTime/FileTimeInterval;
+        TotalParticleInAFile = int(FileTimeInterval/ParticleTimeInterval);
+        cout << "The total number of particles in a file_interval = " << TotalParticleInAFile << endl;
         int FileIndex = 0;
-        int frequency = int(TotalParticle/OutputFileNumber);
+        //int frequency = int(TotalParticle/OutputFileNumber);
         int particleNumber = 0;
         write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
                                      PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
 
 
+        for ( int indexOutputFile = 1; indexOutputFile <= TotalOutputFile; indexOutputFile++){
 
 
-        /*
-        cout << endl;
-        cout << "GENERAL INFORMATION : " << endl;
-        cout << "meshfile is read from " << meshfile << endl ;
-        cout << "Nx = "<<Nx<<", Lx = " << Lx <<endl;
-        cout << "Ny = "<<Ny<<", Ly = " << Ly <<endl;
-        cout << "Nz = "<<Nz<<", Lz = " << Lz <<endl;
-        cout << "speed cutoff for Cl radical = " << speed_cutoff_for_thermal_paricle[iClRadicalType] <<" m/s"<<endl;
-        cout << "speed cutoff for Si(g) = "           << speed_cutoff_for_thermal_paricle[iSigType]              <<" m/s"<<endl;
-        cout << "speed cutoff for SiCl(g) = "      << speed_cutoff_for_thermal_paricle[iSiClgType]          <<" m/s"<<endl;
-        cout << "speed cutoff for SiCl2(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl2gType]        <<" m/s"<<endl;
-        cout << "speed cutoff for SiCl3(g) = "   << speed_cutoff_for_thermal_paricle[iSiCl3gType]        <<" m/s"<<endl;
-        */
 
-        #pragma omp parallel for
-        for (int indexParticle = 0;   indexParticle < TotalParticle;   indexParticle++){
+                #pragma omp parallel for
+                for (int indexParticle = 0;   indexParticle < TotalParticleInAFile;   indexParticle++){
 
-                particle P1;                                            //--Generate a particle
-                P1.setInitialType( GenerationProbIncidentParticle );  //--choose a particular type of particle
-                double rdd1, rdd2, rdd3;                                //--random number for selecting ion energy and angle
-                int ReactionExecution = 0;                              //--determine if a reaction happen
-                int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
-                int ReflectedParticle = 0;                              //--index for original reflected particle such as Ar*, Cl*
-                int ReactionIndex = 0;                                 //--index for a particular reaction formula
-                double normSurfaceNormal [3];                              //--normalized surface normal vector (x, y, z)
-                double normReflectedVelocity [3];                            //--normalized reflected velocity vector (x, y, z)
-                double GrazingAngle = 0;                               //--angle between surface and velocity
-                double IncidentAngle = 0;                              //--angle between normal and velocity
-                int old_iPos [3];                                       //--to record the iPos (x, y, z) before propogation
-                double old_dPos [3];                                    //--to record the dPos (x, y, z) before propagation
-                int itag;                                               //--itag of particle center
-                int old_itag;
-                int itag_six_point [6] ;                                //--itag of particle's six neighboring points
-                double dPos_six_point [6][3] ;                          //--dPos (x, y, z) of particle's six neighboring points
-                int iPos_six_point [6][3] ;                             //--iPos (x, y, z) of particle's siz neighboring points
-                int CountPointInSolid;                               //--to count how many point of a seven-point molecule is on solid cell
-                queue<int> EmittedType ;
-                queue<double> normEmittedNormal_X_dir ;                         //--normalized velocity for emitted particle
-                queue<double> normEmittedNormal_Y_dir ;                         //--normalized velocity for emitted particle
-                queue<double> normEmittedNormal_Z_dir ;                         //--normalized velocity for emitted particle
-                queue<double> dPos_X_dir_EmittedParticle ;                           //--dPos for emitted particle
-                queue<double> dPos_Y_dir_EmittedParticle ;                           //--dPos for emitted particle
-                queue<double> dPos_Z_dir_EmittedParticle ;                           //--dPos for emitted particle
-                queue<int> iPos_X_dir_EmittedParticle;                              //--iPos for emitted particle
-                queue<int> iPos_Y_dir_EmittedParticle;                              //--iPos for emitted particle
-                queue<int> iPos_Z_dir_EmittedParticle;                              //--iPos for emitted particle
-                EmittedType = queue<int>();
-                double normEmittedNormal [3];
-                normEmittedNormal_X_dir = queue<double>();
-                normEmittedNormal_Y_dir = queue<double>();
-                normEmittedNormal_Z_dir = queue<double>();
-                dPos_X_dir_EmittedParticle = queue<double>();
-                dPos_Y_dir_EmittedParticle = queue<double>();
-                dPos_Z_dir_EmittedParticle = queue<double>();
-                iPos_X_dir_EmittedParticle = queue<int>();
-                iPos_Y_dir_EmittedParticle = queue<int>();
-                iPos_Z_dir_EmittedParticle = queue<int>();
-                double prob_of_energy [10]= {0.0};  //--used in ion enhanced reaction, the energy-dependent reaction probability
-                double prob_of_angle [10]= {0.0};  //--used in ion enhanced reaction, the angle-dependent reaction probability
-                double accerlation [3];
+                        particle P1;                                            //--Generate a particle
+                        P1.setInitialType( GenerationProbIncidentParticle );  //--choose a particular type of particle
+                        double rdd1, rdd2, rdd3;                                //--random number for selecting ion energy and angle
+                        int ReactionExecution = 0;                              //--determine if a reaction happen
+                        int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
+                        int ReflectedParticle = 0;                              //--index for original reflected particle such as Ar*, Cl*
+                        int ReactionIndex = 0;                                 //--index for a particular reaction formula
+                        double normSurfaceNormal [3];                              //--normalized surface normal vector (x, y, z)
+                        double normReflectedVelocity [3];                            //--normalized reflected velocity vector (x, y, z)
+                        double GrazingAngle = 0;                               //--angle between surface and velocity
+                        double IncidentAngle = 0;                              //--angle between normal and velocity
+                        int old_iPos [3];                                       //--to record the iPos (x, y, z) before propogation
+                        double old_dPos [3];                                    //--to record the dPos (x, y, z) before propagation
+                        int itag;                                               //--itag of particle center
+                        int old_itag;
+                        int itag_six_point [6] ;                                //--itag of particle's six neighboring points
+                        double dPos_six_point [6][3] ;                          //--dPos (x, y, z) of particle's six neighboring points
+                        int iPos_six_point [6][3] ;                             //--iPos (x, y, z) of particle's siz neighboring points
+                        int CountPointInSolid;                               //--to count how many point of a seven-point molecule is on solid cell
+                        queue<int> EmittedType ;
+                        queue<double> normEmittedNormal_X_dir ;                         //--normalized velocity for emitted particle
+                        queue<double> normEmittedNormal_Y_dir ;                         //--normalized velocity for emitted particle
+                        queue<double> normEmittedNormal_Z_dir ;                         //--normalized velocity for emitted particle
+                        queue<double> dPos_X_dir_EmittedParticle ;                           //--dPos for emitted particle
+                        queue<double> dPos_Y_dir_EmittedParticle ;                           //--dPos for emitted particle
+                        queue<double> dPos_Z_dir_EmittedParticle ;                           //--dPos for emitted particle
+                        queue<int> iPos_X_dir_EmittedParticle;                              //--iPos for emitted particle
+                        queue<int> iPos_Y_dir_EmittedParticle;                              //--iPos for emitted particle
+                        queue<int> iPos_Z_dir_EmittedParticle;                              //--iPos for emitted particle
+                        EmittedType = queue<int>();
+                        double normEmittedNormal [3];
+                        normEmittedNormal_X_dir = queue<double>();
+                        normEmittedNormal_Y_dir = queue<double>();
+                        normEmittedNormal_Z_dir = queue<double>();
+                        dPos_X_dir_EmittedParticle = queue<double>();
+                        dPos_Y_dir_EmittedParticle = queue<double>();
+                        dPos_Z_dir_EmittedParticle = queue<double>();
+                        iPos_X_dir_EmittedParticle = queue<int>();
+                        iPos_Y_dir_EmittedParticle = queue<int>();
+                        iPos_Z_dir_EmittedParticle = queue<int>();
+                        double accerlation [3];
 
-                //--Count total number of particle and write to a file in a vtk format
-                #pragma omp critical
-                {
-                        particleNumber++;
-
-                        if(  particleNumber%frequency == 0  ){
-                                FileIndex++;
-                                if (  FileIndex == OutputFileNumber  ){
-                                        PRINT_SI = true;
-                                        PRINT_SICl = true;
-                                        PRINT_SICl2 = true;
-                                        PRINT_SICl3 = true;
-                                }
-                                write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
-                                                                PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
+                        //--Count total number of particle and write to a file in a vtk format
+                        #pragma omp critical
+                        {
+                                particleNumber++;
                         }
-                }
-                /*
-                cout << "indexParticle = " << indexParticle << endl;
-                cout << "particle type = " << P1.ParticleType << endl;
+                        /*
+                        cout << "indexParticle = " << indexParticle << endl;
+                        cout << "particle type = " << P1.ParticleType << endl;
                 */
 
                 if (P1.ParticleType == 0){
@@ -1057,8 +1036,6 @@ int main(int argc, char* argv[])
                                         if( P1.ParticleType == iClRadicalType ){
                                                 C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &ReactionIndex);
 
-
-
                                                 if (ReactionExecution == 0){
                                                         P1.speed = P1.setInitialSpeed( Temperature,   P1.mass,   SpeedcutoffThermalParicle[P1.ParticleType]  );
                                                         P1.energy = 0.5*P1.mass*P1.speed*P1.speed;
@@ -1080,33 +1057,18 @@ int main(int argc, char* argv[])
                                                         C1.ClIonReaction(Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction, type_ClIonReaction,
                                                                                                PhysSputterProb, ChemSputterProb, itag, iNumMaterial, P1.energy*Joule_to_eV, IncidentAngle,
                                                                                                &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                                                        /*
-                                                        calc_prob_of_energy(Eth_ClIonReaction , &E0_ClIonReaction, P1.energy*Joule_to_eV, prob_of_energy);
-                                                        calc_prob_of_angle( type_ClIonReaction, PhysSputterProb, ChemSputterProb, &IncidentAngle, prob_of_angle);
-                                                        C1.ClIonReaction(itag, p0_ClIonReaction, prob_of_energy, prob_of_angle, &ReactionExecution, &ReflectedParticle,
-                                                                                              &EmittedParticle, &ReactionIndex);
-                                                        */
+
                                                 }else if (P1.ParticleType == iCl2IonType){
 
                                                         C1.Cl2IonReaction(Eth_Cl2IonReaction, &E0_Cl2IonReaction, p0_Cl2IonReaction, type_Cl2IonReaction,
                                                                                                   PhysSputterProb, ChemSputterProb, itag, iNumMaterial, P1.energy*Joule_to_eV, IncidentAngle,
                                                                                                   &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                                                        /*
-                                                        calc_prob_of_energy(Eth_Cl2IonReaction,  &E0_Cl2IonReaction, P1.energy*Joule_to_eV, prob_of_energy);
-                                                        calc_prob_of_angle(type_Cl2IonReaction, PhysSputterProb, ChemSputterProb, &IncidentAngle, prob_of_angle);
-                                                        C1.Cl2IonReaction(itag, p0_Cl2IonReaction, prob_of_energy, prob_of_angle, &ReactionExecution, &ReflectedParticle,
-                                                                                                &EmittedParticle, &ReactionIndex);
-                                                        */
+
                                                 }else if (P1.ParticleType == iArIonType){
                                                         C1.ArIonReaction(Eth_ArIonReaction, &E0_ArIonReaction, p0_ArIonReaction, type_ArIonReaction,
                                                                                                PhysSputterProb, ChemSputterProb, itag, iNumMaterial, P1.energy*Joule_to_eV, IncidentAngle,
                                                                                                &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                                                        /*
-                                                        calc_prob_of_energy(Eth_ArIonReaction,  &E0_ArIonReaction, P1.energy*Joule_to_eV, prob_of_energy);
-                                                        calc_prob_of_angle( type_ArIonReaction, PhysSputterProb, ChemSputterProb, &IncidentAngle, prob_of_angle);
-                                                        C1.ArIonReaction(itag, p0_ArIonReaction, prob_of_energy, prob_of_angle, &ReactionExecution, &ReflectedParticle,
-                                                                                              &EmittedParticle, &ReactionIndex);
-                                                        */
+
                                                 }
 
                                                 /*
@@ -1177,9 +1139,6 @@ int main(int argc, char* argv[])
                                                         //--modify particle energy, speed, and reflected velocity
                                                         P1.ReflectedWithNewEnergy(normReflectedVelocity, &GrazingAngle, &epsilon_0, &epsilon_s, &theta_0, &gamma_0);
 
-
-
-
                                                         if ( P1.speed == 0){
                                                                 P1.ParticleType = 0;
                                                         }else{
@@ -1211,12 +1170,25 @@ int main(int argc, char* argv[])
                         }//--End of count_point_on_solid (if clause)
                 }//--End of particle propagation loop (for loop)
         }//--End of particle generation loop (for loop)
-        cout << "Total number of files generated : " << FileIndex <<endl;
+
+        if (   indexOutputFile == TotalOutputFile  ){
+                PRINT_SI = true;
+                PRINT_SICl = true;
+                PRINT_SICl2 = true;
+                PRINT_SICl3 = true;
+        }
+        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
+                                    PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, indexOutputFile );
+
+
+}
+        cout << "Total number of files generated : " << TotalOutputFile <<endl;
         cout << "Total Particle Number : " << particleNumber << endl;
+        /*
         FileIndex++;
         write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
                                      PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
-
+        */
         /*
         ofstream out1( directory+"number_of_reactions"   );
          for (int i = 0; i < 26 ; i++){
@@ -1229,5 +1201,5 @@ int main(int argc, char* argv[])
         }
         */
 
-        cout << "Particle numbers are written to " << directory+"number_of_particles" << endl;
+        //cout << "Particle numbers are written to " << directory+"number_of_particles" << endl;
 }//--End of Program

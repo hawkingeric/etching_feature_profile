@@ -2,7 +2,7 @@
   "mesh":
   {
     "geometry":                    "3D",
-    "meshfile":                    "single_finite_trench",
+    "meshfile":                    "/work1/crpan/etching_feature_profile/single_finite_trench/feature_profile-21.vtk",
     "cell_size":                   1, "unit":"nm",
     "domain_size_x":               310,  
     "domain_size_y":               500,
@@ -14,8 +14,8 @@
     "mask_length":                 400,
     "gap_width_x":                 200,
     "gap_width_y":                 100,
-    "atom_number_in_material":     2,
-    "atom_number_in_mask":	   50,
+    "atom_number_in_material":     1,
+    "atom_number_in_mask":	   10,
     "surface_searching_radius":    4   	    
   },
   
@@ -23,9 +23,9 @@
   {
     "type_name":	            "VTK",
     "vtkDataType":                  "STRUCTURED_POINTS",
-    "output_file_directory":        "/work1/crpan/single_finite_trench/",
+    "output_file_directory":        "/work1/crpan/etching_feature_profile/single_finite_trench/",
     "output_file_name":             "feature_profile-",
-    "output_file_number":           5,
+    "output_file_number":           20,
     "PRINT_SI":                     false,   
     "PRINT_SICl":                   false,
     "PRINT_SICl2":                  false,
@@ -34,7 +34,7 @@
   
   "simulation_conditions":
   {           
-    "total_real_time":              5,  "unit":"seconds",
+    "total_real_time":              2,  "unit":"seconds",
     "propagation_timestep_number":  1E4,
     "boundary_condition":           "periodic",    
     "Temperature":                  1000,
@@ -42,13 +42,13 @@
     "dClIonFlux":                   1.0E16, "unit":"cm^-2 s^-1",
     "dCl2IonFlux":                  8.3E15, "unit":"cm^-2 s^-1",
     "dArIonFlux":                   6.1E14, "unit":"cm^-2 s^-1",
-    "IEADF_data_directory":         "/work1/crpan/IEADF_data/",
+    "IEADF_data_directory":         "/work1/crpan/etching_feature_profile/IEADF_data/",
     "NEUTRAL_THETA_SCALING":        false, 
     "ION_THETA_SCALING":            false, 
     "neutral_theta_scaling_factor": 1.0,
     "ion_theta_scaling_factor":     1.0,          
-    "reemission_cosine_law_power":  1.0,
-    "particle_size_factor":         0.2
+    "reemission_cosine_law_power":  100,
+    "particle_size_factor":         0.5
   },
 
   "surface_reactions":
