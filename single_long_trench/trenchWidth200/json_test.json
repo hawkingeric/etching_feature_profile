@@ -1,0 +1,91 @@
+{
+  "mesh":
+  {
+    "geometry":                    "3D",
+    "meshfile":                    "single_long_trench",
+    "cell_size":                   1, "unit":"nm",
+    "domain_size_x":               300,  
+    "domain_size_y":               20,
+    "domain_size_z":               1000,
+    "substrate_thickness":         900,
+    "mask_thickness":              50,
+    "trench_width":                200,
+    "mask_width":                  100,
+    "mask_length":                 400,
+    "gap_width_x":                 200,
+    "gap_width_y":                 100,
+    "atom_number_in_material":     1,
+    "atom_number_in_mask":	   10,
+    "surface_searching_radius":    4   	    
+  },
+  
+  "output_setting":
+  {
+    "type_name":	            "VTK",
+    "vtkDataType":                  "STRUCTURED_POINTS",
+    "output_file_directory":        "/home/crpan/etching_feature_profile/single_long_trench/trenchWidth200/",
+    "output_file_name":             "feature_profile-",
+    "output_file_number":           20,
+    "PRINT_SI":                     false,   
+    "PRINT_SICl":                   false,
+    "PRINT_SICl2":                  false,
+    "PRINT_SICl3":                  false,
+    "file_time_interval":           40,   "unit":"seconds"
+  },
+  
+  "simulation_conditions":
+  {           
+    "total_real_time":              400,  "unit":"seconds",
+    "propagation_timestep_number":  1E4,
+    "boundary_condition":           "periodic",    
+    "Temperature":                  1000,
+    "dClRadicalFlux":               2.2E17, "unit":"cm^-2 s^-1",
+    "dClIonFlux":                   1.0E16, "unit":"cm^-2 s^-1",
+    "dCl2IonFlux":                  8.3E15, "unit":"cm^-2 s^-1",
+    "dArIonFlux":                   6.1E14, "unit":"cm^-2 s^-1",
+    "IEADF_data_directory":         "/home/crpan/etching_feature_profile/IEADF_data/",
+    "NEUTRAL_THETA_SCALING":        false, 
+    "ION_THETA_SCALING":            false, 
+    "neutral_theta_scaling_factor": 1.0,
+    "ion_theta_scaling_factor":     1.0,          
+    "reemission_cosine_law_power":  100,
+    "particle_size_factor":         0.5
+  },
+
+  "surface_reactions":
+  {
+    "phys_sputter_prob":            [0.55, 0.555, 0.60, 0.555, 0.85, 1.3, 1.355, 1.0, 0.75, 0.0],
+    "chem_sputter_prob":            [1.00, 1.000, 1.00, 1.000, 1.00, 0.9, 0.800, 0.6, 0.30, 0.0],
+    "Cl_radical_reaction":
+    {
+      "probability":                [0.99, 0.40, 0.30, 0.02, 0.0001, 0.08]
+    },
+    "redeposition":
+    {
+      "-probability":                [0.00, 0.00, 0.00], 
+      "probability":                [0.02, 0.02, 0.02] 
+    },
+    "Cl_ion_reaction":
+    {
+      "probability":                [0.05, 0.10, 0.20, 0.50, 0.50],
+      "activation_energy":          [  25,   35,   10,   10,   10],"unit":"eV",
+      "reference_energy":           100,                           "unit":"eV",
+      "reaction_type":              [   0,    0,    1,    1,    1]
+    },
+    "Cl2_ion_reaction":
+    {
+      "probability":                [0.02, 0.20, 0.25, 0.25, 0.25, 0.25],
+      "activation_energy":          [  25,   10,   10,   10,   10,   10],"unit":"eV",
+      "reference_energy":           100,                                 "unit":"eV",
+      "reaction_type":              [   0,    1,    1,    1,    1,    1]
+    },
+    "Ar_ion_reaction":
+    {
+      "probability":                [0.05, 0.20, 0.50, 0.50],
+      "activation_energy":          [25, 10, 10, 10],                    "unit":"eV",
+      "reference_energy":           100,                                 "unit":"eV",
+      "reaction_type":              [ 0,  1,  1,  1]
+    }
+   
+  }
+}
