@@ -23,7 +23,7 @@
   {
     "type_name":	            "VTK",
     "vtkDataType":                  "STRUCTURED_POINTS",
-    "output_file_directory":        "/home/crpan/etching_feature_profile/single_long_trench/trenchWidth200_NIratio20/",
+    "output_file_directory":        "/work1/crpan/etching_feature_profile/single_long_trench/trenchWidth200_NIratio20/",
     "output_file_name":             "feature_profile-",
     "output_file_number":           20,
     "PRINT_SI":                     false,   
@@ -43,7 +43,7 @@
     "dClIonFlux":                   0.5E16, "unit":"cm^-2 s^-1",
     "dCl2IonFlux":                  4.1E15, "unit":"cm^-2 s^-1",
     "dArIonFlux":                   3.0E14, "unit":"cm^-2 s^-1",
-    "IEADF_data_directory":         "/home/crpan/etching_feature_profile/IEADF_data/",
+    "IEADF_data_directory":         "/work1/crpan/etching_feature_profile/IEADF_data/",
     "NEUTRAL_THETA_SCALING":        false, 
     "ION_THETA_SCALING":            false, 
     "neutral_theta_scaling_factor": 1.0,

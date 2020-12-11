@@ -15,7 +15,7 @@
     "gap_width_x":                 200,
     "gap_width_y":                 100,
     "atom_number_in_material":     1,
-    "atom_number_in_mask":	   10,
+    "atom_number_in_mask":	   1,
     "surface_searching_radius":    4   	    
   },
   
@@ -35,7 +35,7 @@
   
   "simulation_conditions":
   {           
-    "total_real_time":              400,  "unit":"seconds",
+    "total_real_time":              200,  "unit":"seconds",
     "propagation_timestep_number":  1E4,
     "boundary_condition":           "periodic",    
     "Temperature":                  1000,

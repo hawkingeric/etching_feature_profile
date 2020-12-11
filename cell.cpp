@@ -3,7 +3,7 @@
 #include "jacobi_eigenvalue.h"
 
 using namespace std;
-
+#pragma acc routine seq
 void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
 {
         cell::iDimSize[0] = ix;
@@ -36,6 +36,7 @@ void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
         for(i=0; i<cell::iNumCell; i++)         cell::iDim[i]    = new int [3]; //for each row in iDim, assign a 1-D array with size of 3 to store the (x y z) coordinate
         for(i=0; i<cell::iNumCell; i++)         cell::iID_NBR[i] = new int [27]; // for each row in iID_NBR, assign a 1-D array with size of 27 to store the neighboring coordinates
 
+
         for(i=0; i<cell::iNumCell; i++)
         {
                 cell::iDim[i][0]       =     i%ix;                     //--x coordinate
@@ -60,10 +61,12 @@ void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
                 cell::ElectricForce[i][2]  =  0.0;
         }
 
+
+
         cell::setNBR();
 }
 
-
+#pragma acc routine seq
 void cell::setNBR()
 {
         int i, j, k, itag;
@@ -92,63 +95,51 @@ void cell::setNBR()
                        cell::iID_NBR[jj][ii] = itag;
                 }
         }
+
 }
 
-
+#pragma acc routine seq
 void cell::setStatus(int iTagCell, int iST, int iNum)
 {
-        #pragma omp reduction (cell::iStatus[iTagCell])
+
         cell::iStatus[iTagCell]       = iST;
         if(iST == iVacuumStat ) // vacuumdvec
         {
-                #pragma omp reduction (cell:dNumCharge[iTagCell])
                 cell::dNumCharge[iTagCell]    = 0;
-                #pragma omp reduction (cell:dNumMaterial[iTagCell])
                 cell::dNumMaterial[iTagCell] = 0;
-                #pragma omp reduction (cell:dNumNeutral[iTagCell])
                 cell::dNumNeutral[iTagCell]   = 0;
-                #pragma omp reduction (cell:dNumMask[iTagCell])
                 cell::dNumMask[iTagCell]      = 0;
-                #pragma omp reduction (cell:dNumIon[iTagCell])
                 cell::dNumIon[iTagCell]       = 0;
         }
         else if(iST == iSubstrateStat ) //material
         {
-                #pragma omp reduction (cell:dNumCharge[iTagCell])
                 cell::dNumCharge[iTagCell]    = 0;
-                #pragma omp reduction (cell:dNumMaterial[iTagCell])
                 cell::dNumMaterial[iTagCell]  = iNum;
-                #pragma omp reduction (cell:dNumSiClxs[iTagCell])
                 cell::dNumSiClxs[iTagCell][0] = cell::dNumMaterial[iTagCell];
-                #pragma omp reduction (cell:dNumNeutral[iTagCell])
                 cell::dNumNeutral[iTagCell]   = 0;
-                #pragma omp reduction (cell:dNumMask[iTagCell])
                 cell::dNumMask[iTagCell]      = 0;
-                #pragma omp reduction (cell:dNumIon[iTagCell])
                 cell::dNumIon[iTagCell]       = 0;
          }
          else if(iST == iMaskStat ) //mask
          {
-                #pragma omp reduction (cell:dNumCharge[iTagCell])
                 cell::dNumCharge[iTagCell]    = 0;
-                #pragma omp reduction (cell:dNumMaterial[iTagCell])
                 cell::dNumMaterial[iTagCell]  = 0;
-                #pragma omp reduction (cell:dNumNeutral[iTagCell])
                 cell::dNumNeutral[iTagCell]   = 0;
-                #pragma omp reduction (cell:dNumMask[iTagCell])
                 cell::dNumMask[iTagCell]      = iNum;
-                #pragma omp reduction (cell:dNumIon[iTagCell])
                 cell::dNumIon[iTagCell]       = 0;
           }
+
+
         //ctor
 }
 
 
 
 //input: itag, iPos, incident_V; output: norm_surface_N, norm_reflected_V, grazing_angle, incident_angle
+#pragma acc routine seq
 void cell::surface_normal(int searching_index[][3], int searching_number, int itag, int* iPos,
                                                         double* incident_V, double* norm_surface_N, double* norm_reflected_V, double* grazing_angle, double* incident_angle ){
-        vector<vector<double>> Surfacesites;
+        vector<vector<double>> Surfacesites ;
         int NN_x, NN_y, NN_z, itagNeighbor;
         int NN_x_for_cal_itag, NN_y_for_cal_itag, NN_z_for_cal_itag;
 
@@ -180,18 +171,24 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                                 cell::iStatus[cell::iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][14]] == iVacuumStat ||
                                 cell::iStatus[cell::iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][22]] == iVacuumStat){
                                 Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), cell::dNumMaterial[itagNeighbor]});
-                                //Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), 1.0});
+                                //cout << "dNumMaterial[itagNeighbor] = " << dNumMaterial[itagNeighbor] << endl;
+                                //cin.get();
                         }
                 }else if ( cell::iStatus[itagNeighbor] == iMaskStat  ){
                         if (  cell::iStatus[cell::iID_NBR[itagNeighbor][4]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][12]] == iVacuumStat ||
                                 cell::iStatus[cell::iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][14]] == iVacuumStat ||
                                 cell::iStatus[cell::iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][22]] == iVacuumStat){
                                 Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), cell::dNumMask[itagNeighbor]});
-                                //Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), 1.0});
+                                //cout << "dNumMask[itagNeighbor] = " << dNumMask[itagNeighbor] << endl;
+                                //cin.get();
                         }
                 }
         }
 
+
+
+
+        //cin.get();
         double xbar, ybar, zbar, xsum, ysum, zsum, numSites, A11, A12, A13, A21, A22, A23, A31, A32, A33;
         xbar = 0; ybar = 0; zbar = 0; xsum = 0; ysum = 0; zsum = 0; numSites = 0;
         A11 = 0; A12 = 0; A13 = 0; A21 = 0; A22 = 0; A23 = 0; A31 = 0; A32 = 0; A33 = 0;
@@ -202,7 +199,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 zsum = zsum + Surfacesites[i][Z_dir]*Surfacesites[i][3];
                 numSites = numSites + Surfacesites[i][3];
         }
-
+        if ( numSites == 0)  cout << "numSites = 0" << endl;
         xbar = xsum/numSites;
         ybar = ysum/numSites;
         zbar = zsum/numSites;
@@ -220,10 +217,12 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
         A21 = A12;
         A31 = A13;
         A32 = A23;
+
+        double detA = A11*A22*A33+A12*A23*A31+A13*A21*A32-A31*A22*A13-A23*A32*A11-A12*A21*A33;
         int ranknumber = 3;
-        double A [ranknumber*ranknumber] = {A11, A12, A13, A12, A22, A23, A13, A23, A33};  //--matrix
-        double D [ranknumber]; //--eigenvalue
-        double V [ranknumber*ranknumber];  //--eigenvector
+        double A [9] = {A11, A12, A13, A21, A22, A23, A31, A32, A33};  //--matrix
+        double D [3]; //--eigenvalue
+        double V [9];  //--eigenvector
         int it_max = 500;
         int it_num;
         int rot_num;
@@ -240,7 +239,24 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
         norm_surface_N[X_dir] = V[minVal_index*3+X_dir];
         norm_surface_N[Y_dir] = V[minVal_index*3+Y_dir];
         norm_surface_N[Z_dir] = V[minVal_index*3+Z_dir];
-
+        /*
+        if ( detA != 0){
+                cout << "norm_surface_N[X_dir] = " << norm_surface_N[X_dir] << endl;
+                cout << "norm_surface_N[Y_dir] = " << norm_surface_N[Y_dir] << endl;
+                cout << "norm_surface_N[Z_dir] = " << norm_surface_N[Z_dir] << endl;
+                cout << "V[0] V[1] V[2] = " << V[0] << "  " << V[1] << "  " << V[2] << "  " << D[0] << endl;
+                cout << "V[3] V[4] V[5] = " << V[3] << "  " << V[4] << "  " << V[5] << "  " << D[1] << endl;
+                cout << "V[6] V[7] V[8] = " << V[6] << "  " << V[7] << "  " << V[8] << "  " << D[2] << endl;
+                cout << A11 << "    " << A12 << "    " << A13 << endl;
+                cout << A21 << "    " << A22 << "    " << A23 << endl;
+                cout << A31 << "    " << A32 << "    " << A33 << endl;
+                cout << "V'[0] V'[1] V'[2] = " << (A11*V[0]+A12*V[1]+A13*V[2])/V[0] <<  "  " << (A21*V[0]+A22*V[1]+A23*V[2])/V[1] << "  " << (A31*V[0]+A32*V[1]+A33*V[2])/V[2] << endl;
+                cout << "V'[3] V'[4] V'[5] = " << (A11*V[3]+A12*V[4]+A13*V[5])/V[3] <<  "  " << (A21*V[3]+A22*V[4]+A23*V[5])/V[4] << "  " << (A31*V[3]+A32*V[4]+A33*V[5])/V[5] << endl;
+                cout << "V'[6] V'[7] V'[8] = " << (A11*V[6]+A12*V[7]+A13*V[8])/V[6] <<  "  " << (A21*V[6]+A22*V[7]+A23*V[8])/V[7] << "  " << (A31*V[6]+A32*V[7]+A33*V[8])/V[8] << endl;
+                for(int i =0; i< Surfacesites.size(); i++)    cout << Surfacesites[i][X_dir] << " " << Surfacesites[i][Y_dir] << " " << Surfacesites[i][Z_dir] << endl;
+                cin.get();
+        }
+        */
         //--determine the direction of the surface normal
         int poll_positive = 0;
         int poll_negative = 0;
@@ -304,11 +320,11 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                  default_random_engine generator( rd() );  //--random number generator
                  uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
                  double rdd = unif(generator);
-                 /*
+
                  cout << "poll_positive = " << poll_positive << endl;
                  cout << "poll_negative = " << poll_negative << endl;
                  cout << "norm surface N before = " << norm_surface_N[X_dir] << " " << norm_surface_N[Y_dir] << " " << norm_surface_N[Z_dir] << endl;
-                 */
+
                  if( rdd < 0.5 ){
                          norm_surface_N[X_dir] = norm_surface_N[X_dir];
                          norm_surface_N[Y_dir] = norm_surface_N[Y_dir];
@@ -478,217 +494,9 @@ void cell::TransNeutral4Vacuum(int i){
 }
 
 
-void cell::Slope(int iTagCell, double *dVec)
-{
-    //                  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
-    //int ishiftx[27]={-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    //int ishifty[27]={-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    //int ishiftz[27]={-1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    int ix1 = 12, ix2 = 14, iy1 = 10 , iy2 = 16, iz1 = 4, iz2 = 22;
-
-    dVec[0] = double(cell::dNumMaterial[cell::iID_NBR[iTagCell][ix1]]- cell::dNumMaterial[cell::iID_NBR[iTagCell][ix2]]);
-    dVec[1] = double(cell::dNumMaterial[cell::iID_NBR[iTagCell][iy1]]- cell::dNumMaterial[cell::iID_NBR[iTagCell][iy2]]);
-    dVec[2] = double(cell::dNumMaterial[cell::iID_NBR[iTagCell][iz1]]- cell::dNumMaterial[cell::iID_NBR[iTagCell][iz2]]);
-
-}
 
 
-void cell::Slope2(int iTagCell, double *dVec)
-{
-    //                  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
-    int ishiftx[27]={-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    int ishifty[27]={-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    int ishiftz[27]={-1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    int ix1 = 12, ix2 = 14, iy1 = 10 , iy2 = 16, iz1 = 4, iz2 = 22;
-    int i;
-    double xv = 0.0, yv=0.0, zv=0.0, NumP=0.0;
 
-    for(i=0;i<27;i++){
-        xv      += cell::dNumMaterial[cell::iID_NBR[iTagCell][i]] * ishiftx[i];
-        yv      += cell::dNumMaterial[cell::iID_NBR[iTagCell][i]] * ishifty[i];
-        zv      += cell::dNumMaterial[cell::iID_NBR[iTagCell][i]] * ishiftz[i];
-        NumP    += cell::dNumMaterial[cell::iID_NBR[iTagCell][i]];
-    }
-
-    dVec[0] =  - xv / NumP;
-    dVec[1] =  - yv / NumP;
-    dVec[2] =  - zv / NumP;
-
-}
-
-
-void cell::Slope3(int iTagCell, double *dVec)
-{
-    //                0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
-    int ishiftx[27]={-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
-    int ishifty[27]={-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
-    int ishiftz[27]={-1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    int iXYXnbr[6]={12,14,10,16,4,22};
-    int i, j, k, m, iTagNbr, iboo,iTagNbrID[6], TagDirection;
-    int xyPlane[8]={9,10,11,12,14,15,16,17}, yzPlane[8]={1,4,7,10,16,19,22,25}, zxPlane[8]={4,22,12,14,3,5,21,23};
-    int iNumSurf = 0, iNumSurf2 = 0, iNumSurf3 = 0, iSurface[8], iSkip[8];
-    double xv = 0.0, yv=0.0, zv=0.0, NumP=0.0;
-
-    iSkip[0] = iTagCell;
-    for(j=0;j<8;j++){
-        iTagNbr = cell::iID_NBR[iTagCell][zxPlane[j]];
-        if(cell::iStatus[iTagNbr] == iInterS_VStat){
-            iSurface[iNumSurf]  = iTagNbr;
-            iSkip[iNumSurf]     = iTagCell;
-            iNumSurf            += 1;
-        }
-    }
-    if (iNumSurf >2) iNumSurf = 2;
-
-    for(i=0;i<3;i++){
-    iNumSurf2 = iNumSurf;
-    for(k = iNumSurf3; k<iNumSurf2; k++){
-        for(j=0;j<8;j++){
-            iTagNbr = cell::iID_NBR[iSurface[k]][zxPlane[j]];
-            if(cell::iStatus[iTagNbr] == iInterS_VStat && iTagNbr!= iSkip[k]){
-                iboo = 0;
-                for (m=0;m < iNumSurf;m++){
-                    if(iTagNbr != iSurface[m]){
-                        iboo += 1;
-                    }
-                }
-                if( iboo == iNumSurf){
-                    iSurface[iNumSurf]  = iTagNbr;
-                    iSkip[iNumSurf]     = iSurface[k];
-                    iNumSurf            += 1;
-                }
-
-            }
-        }
-    }
-
-    if(iNumSurf - iNumSurf2 > 2) iNumSurf = iNumSurf2+2;
-    iNumSurf3 = iNumSurf2;
-    }
-
-    int icor[9][3];
-    //debugfile << std::setw(8) << iNumSurf;
-    //debugfile << std::endl;
-    for (i=0;i<iNumSurf;i++){
-        for(j=0;j<3;j++){
-            icor[i][j] = cell::iDim[iTagCell][j] - cell::iDim[iSurface[i]][j] ;
-            //debugfile << std::setw(8) <<icor[i][j] ;
-        }
-        //debugfile << std::endl;
-    }
-    icor[iNumSurf][0]=0;
-    icor[iNumSurf][1]=0;
-    icor[iNumSurf][2]=0;
-    // for z = ax + b
-    // vec = (-a,0,1)
-    double sumx=0, sumy=0, sumx2=0, sumxy=0;
-
-    for(i=0;i<6;i++) iTagNbrID[i] = cell::iID_NBR[iTagCell][iXYXnbr[i]];
-    TagDirection = 1;
-
-    for (i=0;i<iNumSurf+1;i++){
-        sumx    +=icor[i][0];
-        sumy    +=icor[i][2];
-        sumx2   +=icor[i][0]*icor[i][0];
-        sumxy   +=icor[i][0]*icor[i][2];
-    }
-
-    double D, a, b, c, dlength;
-    D = (iNumSurf+1) * sumx2 - sumx * sumx;
-    if (D > 0.0){
-        a =-((iNumSurf+1) * sumxy - sumy * sumx ) /D;
-        b =  (      sumx2 * sumy  - sumx * sumxy) /D;
-        c = 1;
-        if(cell::iStatus[iTagNbrID[4]] == iVacuumStat){
-            if(cell::iStatus[iTagNbrID[5]] != iVacuumStat){
-                TagDirection = -1;
-            }
-        }else{
-            if(cell::iStatus[iTagNbrID[5]] != iVacuumStat){
-                if(cell::iStatus[iTagNbrID[0]]==iVacuumStat){
-                    if(a>0)TagDirection = -1;
-                }else{
-                    if(a<0)TagDirection = -1;
-                }
-
-            }
-        }
-
-    }else{
-        a = 1;
-        b = 0;
-        c = 0;
-        if(cell::iStatus[iTagNbrID[1]] == iVacuumStat){
-            TagDirection = 1;
-        }else{
-            TagDirection = -1;
-        }
-    }
-
-/*
-        if(cell::iStatus[iTagNbrID[5]] == iVacuumStat){
-            TagDirection = 1;
-        }else if(cell::iStatus[iTagNbrID[4]] == iVacuumStat){
-            TagDirection = -1;
-        }else if(cell::iStatus[iTagNbrID[1]] == iVacuumStat){
-            TagDirection = 1;
-        }else{
-            TagDirection = -1;
-        }
-*/
-
-        //if(cell::iStatus[iTagNbrID[0]] == iVacuumStat) if(a > 0.0)TagDirection = -1;
-        //if(cell::iStatus[iTagNbrID[1]] == iVacuumStat) if(a < 0.0)TagDirection = -1;
-        //if(cell::iStatus[iTagNbrID[2]] == iVacuumStat) if(a > 0.0)TagDirection = -1;
-        //if(cell::iStatus[iTagNbrID[3]] == iVacuumStat) if(a > 0.0)TagDirection = -1;
-        //if(cell::iStatus[iTagNbrID[4]] == iVacuumStat) if(c > 0.0)TagDirection = -1;
-        //if(cell::iStatus[iTagNbrID[5]] == iVacuumStat) if(c < 0.0)TagDirection = -1;
-
-
-        dVec[0] = a * TagDirection;
-        dVec[1] = 0.0;
-        dVec[2] = c * TagDirection;
-
-
-    dlength = sqrt( a*a + c*c );
-    for(i=0;i<3;i++) dVec[i] /= dlength;
-
-    //debugfile<<" a=" << std::setw(8) <<a ;
-    //debugfile << std::endl;
-
-/*
-    debugfile<< std::setw(8) << iTagCell << " " <<iNumSurf << " ";
-    for(i=0;i<iNumSurf;i++){
-        debugfile<<std::setw(8) << iSurface[i] <<" ";
-    }
-
-    debugfile << "  skip ";
-    for(i=0;i<iNumSurf;i++){
-        debugfile <<std::setw(8)<< iSkip[i] <<" ";
-    }
-    debugfile << std::endl;
-*/
-}
-
-
-/*
-void cell::printID(int iTagCell)
-{
-    debugfile << iTagCell <<" "<<cell::iDim[0]<<" "<<cell::iDim[1]<<" "<<cell::iDim[2] <<std::endl;
-    //ctor
-}
-*/
-
-/*
-void cell::printNBR(int iTagCell)
-{
-    int i;
-    debugfile<<iTagCell;
-    for(i=0;i<27;i++) debugfile<<std::setw(5)<< cell::iID_NBR[iTagCell][i];
-    debugfile<<std::endl;
-    //ctor
-}
-*/
 
 
 
