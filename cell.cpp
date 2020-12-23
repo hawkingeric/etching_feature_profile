@@ -103,9 +103,6 @@ void cell::setNBR()
 
 }
 
-
-
-
 #pragma acc routine seq
 void cell::setStatus(int iTagCell, int iST, int iNum)
 {
@@ -146,9 +143,10 @@ void cell::setStatus(int iTagCell, int iST, int iNum)
 
 //input: itag, iPos, incident_V; output: norm_surface_N, norm_reflected_V, grazing_angle, incident_angle
 #pragma acc routine seq
-void surface_normal(int searching_index [][3], int searching_number, int itag, int* iPos, double* incident_V,
-                                              int Nx, int Ny, int Nz, int* iStatus, int** iID_NBR, int iVacuumStat, int iSubstrateStat, int iMaskStat,
-                                             double* norm_surface_N, double* norm_reflected_V, double* grazing_angle, double* incident_angle ){
+void cell::CalcSurfaceNormal(int searching_index [][3], int searching_number, int itag, int* iPos, double* incident_V,
+                                              double* norm_surface_N, double* norm_reflected_V,
+                                              double* grazing_angle, double* incident_angle ){
+        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
         double Surfacesites [searching_number][3];
         int NN_x, NN_y, NN_z, itagNeighbor;
         int NN_x_for_cal_itag, NN_y_for_cal_itag, NN_z_for_cal_itag;
@@ -164,23 +162,23 @@ void surface_normal(int searching_index [][3], int searching_number, int itag, i
                 NN_z_for_cal_itag = NN_z;
 
                 //--periodic boundary condition
-                while (NN_x_for_cal_itag >= Nx )  NN_x_for_cal_itag -= Nx;
-                while (NN_y_for_cal_itag >= Ny )  NN_y_for_cal_itag -= Ny;
-                while (NN_z_for_cal_itag >= Nz )  NN_z_for_cal_itag -= Nz;
-                while (NN_x_for_cal_itag < 0                )                                NN_x_for_cal_itag += Nx;
-                while (NN_y_for_cal_itag < 0                )                                NN_y_for_cal_itag += Ny;
-                while (NN_z_for_cal_itag < 0                )                                NN_z_for_cal_itag += Nz;
+                while (NN_x_for_cal_itag >= cell::iDimSize[X_dir] )  NN_x_for_cal_itag -= cell::iDimSize[X_dir];
+                while (NN_y_for_cal_itag >= cell::iDimSize[Y_dir] )  NN_y_for_cal_itag -= cell::iDimSize[Y_dir];
+                while (NN_z_for_cal_itag >= cell::iDimSize[Z_dir] )  NN_z_for_cal_itag -= cell::iDimSize[Z_dir];
+                while (NN_x_for_cal_itag < 0                )                                NN_x_for_cal_itag += cell::iDimSize[X_dir];
+                while (NN_y_for_cal_itag < 0                )                                NN_y_for_cal_itag += cell::iDimSize[Y_dir];
+                while (NN_z_for_cal_itag < 0                )                                NN_z_for_cal_itag += cell::iDimSize[Z_dir];
 
                 //--calculated itag of Neighboring cell
-                itagNeighbor = NN_x_for_cal_itag + ( NN_y_for_cal_itag + NN_z_for_cal_itag * Ny)*Nx;
+                itagNeighbor = NN_x_for_cal_itag + ( NN_y_for_cal_itag + NN_z_for_cal_itag * cell::iDimSize[Y_dir])*cell::iDimSize[X_dir];
 
 
                 //--check if the cell property of center cell and neighboring cell same
-                if ( iStatus[itagNeighbor] == iSubstrateStat || iStatus[itagNeighbor] == iMaskStat){
+                if ( cell::iStatus[itagNeighbor] == iSubstrateStat || cell::iStatus[itagNeighbor] == iMaskStat){
                         //--check six faces of neighboring cells are exposed to vacuum
-                        if (  iStatus[iID_NBR[itagNeighbor][4]] == iVacuumStat || iStatus[iID_NBR[itagNeighbor][12]] == iVacuumStat ||
-                                iStatus[iID_NBR[itagNeighbor][10]] == iVacuumStat || iStatus[iID_NBR[itagNeighbor][14]] == iVacuumStat ||
-                                iStatus[iID_NBR[itagNeighbor][16]] == iVacuumStat || iStatus[iID_NBR[itagNeighbor][22]] == iVacuumStat){
+                        if (  cell::iStatus[iID_NBR[itagNeighbor][4]] == iVacuumStat || cell::iStatus[iID_NBR[itagNeighbor][12]] == iVacuumStat ||
+                                cell::iStatus[iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[iID_NBR[itagNeighbor][14]] == iVacuumStat ||
+                                cell::iStatus[iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[iID_NBR[itagNeighbor][22]] == iVacuumStat){
                                 Surfacesites[indexSurfacesites][0] = double(NN_x);
                                 Surfacesites[indexSurfacesites][1] = double(NN_y);
                                 Surfacesites[indexSurfacesites][2] = double(NN_z);
@@ -256,14 +254,14 @@ void surface_normal(int searching_index [][3], int searching_number, int itag, i
                 poll_y = floor(iPos[Y_dir] + 2*i*norm_surface_N[Y_dir]);
                 poll_z = floor(iPos[Z_dir] + 2*i*norm_surface_N[Z_dir]);
                 //--periodic boundary condition
-                while ( poll_x >= Nx )  poll_x -= Nx;
-                while ( poll_y >= Ny )  poll_y -= Ny;
-                while ( poll_z >= Nz )  poll_z -= Nz;
-                while ( poll_x < 0       )   poll_x += Nx;
-                while ( poll_y < 0       )   poll_y += Ny;
-                while ( poll_z < 0       )   poll_z += Nz;
-                itag_poll = poll_x + (poll_y + poll_z*Ny)*Nx;
-                if ( iStatus[itag_poll] == iVacuumStat ){
+                while ( poll_x >= cell::iDimSize[X_dir] )  poll_x -= cell::iDimSize[X_dir];
+                while ( poll_y >= cell::iDimSize[Y_dir] )  poll_y -= cell::iDimSize[Y_dir];
+                while ( poll_z >= cell::iDimSize[Z_dir] )  poll_z -= cell::iDimSize[Z_dir];
+                while ( poll_x < 0       )   poll_x += cell::iDimSize[X_dir];
+                while ( poll_y < 0       )   poll_y += cell::iDimSize[Y_dir];
+                while ( poll_z < 0       )   poll_z += cell::iDimSize[Z_dir];
+                itag_poll = poll_x + (poll_y + poll_z* cell::iDimSize[Y_dir])*cell::iDimSize[X_dir];
+                if ( cell::iStatus[itag_poll] == iVacuumStat ){
                         poll_positive++;
                 }
         }
@@ -273,14 +271,14 @@ void surface_normal(int searching_index [][3], int searching_number, int itag, i
                 poll_y = floor(iPos[Y_dir] - 2*i*norm_surface_N[Y_dir]);
                 poll_z = floor(iPos[Z_dir] - 2*i*norm_surface_N[Z_dir]);
                 //--periodic boundary condition
-                while ( poll_x >= Nx )  poll_x -= Nx;
-                while ( poll_y >= Ny )  poll_y -= Ny;
-                while ( poll_z >= Nz )  poll_z -= Nz;
-                while ( poll_x < 0       )   poll_x += Nx;
-                while ( poll_y < 0       )   poll_y += Ny;
-                while ( poll_z < 0       )   poll_z += Nz;
-                itag_poll = poll_x + (poll_y + poll_z*Ny)*Nx;
-                if ( iStatus[itag_poll] == iVacuumStat ){
+                while ( poll_x >= cell::iDimSize[X_dir] )  poll_x -= cell::iDimSize[X_dir];
+                while ( poll_y >= cell::iDimSize[Y_dir] )  poll_y -= cell::iDimSize[Y_dir];
+                while ( poll_z >= cell::iDimSize[Z_dir] )  poll_z -= cell::iDimSize[Z_dir];
+                while ( poll_x < 0       )   poll_x += cell::iDimSize[X_dir];
+                while ( poll_y < 0       )   poll_y += cell::iDimSize[Y_dir];
+                while ( poll_z < 0       )   poll_z += cell::iDimSize[Z_dir];
+                itag_poll = poll_x + (poll_y + poll_z*cell::iDimSize[Y_dir])*cell::iDimSize[X_dir];
+                if ( cell::iStatus[itag_poll] == iVacuumStat ){
                         poll_negative++;
                 }
         }
@@ -348,10 +346,76 @@ void surface_normal(int searching_index [][3], int searching_number, int itag, i
 }
 
 
+void cell::SurfaceReaction( int iCollisionTag, int iBeforeCollisionTag, double GrazingAngle, double IncidentAngle,
+                                                 int* ParticleType, double* mass, double energy)
 
+{
+        int X_dir = 0, Y_dir = 1, Z_dir = 2;
+        int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
+        int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
+        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
+        double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
+        double MassArgon = 39.948*1.66053904E-27;  // unit: kg
+        double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
+        double MassElectron = 9.10938356E-31; // unit: kg
+        int ReactionIndex;
+        int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
+        int ReflectedParticle= 0;                              //--index for original reflected particle such as Ar*, Cl*
 
+        if ( cell::iStatus[iCollisionTag] == iMaskStat){
+                if (  *ParticleType == iClRadicalType ){
+                        *ParticleType = iClRadicalType;
+                }else if (  *ParticleType == iClIonType ){
+                        *ParticleType = iClIonType;
+                }else if (  *ParticleType == iCl2IonType ){
+                        *ParticleType = iCl2IonType;
+                }else if (   *ParticleType == iArIonType ){
+                        *ParticleType = iArIonType;
+                }else if (  *ParticleType == iSiClgType ){
+                        *ParticleType = iSiClgType;
+                }else if (  *ParticleType == iSiCl2gType ){
+                        *ParticleType = iSiCl2gType;
+                        *mass = MassSilicon+MassChlorine*2;
+                }else if (  *ParticleType == iSiCl3gType ){
+                        *ParticleType = iSiCl3gType;
+                        *mass = MassSilicon+MassChlorine*3;
+                }
+        }else if ( cell::iStatus[iCollisionTag] == iSubstrateStat ){
 
-
-
-
-
+                if( *ParticleType == iClRadicalType ){
+                        ClRadicalReaction(iCollisionTag, &ReflectedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }else if (  *ParticleType == iClIonType){
+                        ClIonReaction(iCollisionTag, energy*Joule_to_eV, IncidentAngle, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }else if (  *ParticleType == iCl2IonType){
+                        Cl2IonReaction(iCollisionTag, energy*Joule_to_eV, IncidentAngle, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }else if (  *ParticleType == iArIonType){
+                        ArIonReaction(iCollisionTag, energy*Joule_to_eV, IncidentAngle, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }else if (  *ParticleType == iSiClgType){
+                        Redeposition(*ParticleType, iBeforeCollisionTag, &ReflectedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }else if (  *ParticleType == iSiCl2gType){
+                        Redeposition(*ParticleType, iBeforeCollisionTag, &ReflectedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }else if ( *ParticleType == iSiCl3gType){
+                        Redeposition(*ParticleType, iBeforeCollisionTag, &ReflectedParticle, &ReactionIndex);
+                        *ParticleType = ReflectedParticle;
+                }
+        }
+        if( *ParticleType == iClRadicalType){
+                *mass = MassChlorine;
+        }else if ( *ParticleType == iSiClgType){
+                *mass = MassSilicon+MassChlorine;
+        }else if ( *ParticleType == iSiCl2gType){
+                *mass = MassSilicon+2*MassChlorine;
+        }else if ( *ParticleType == iSiCl3gType){
+                *mass = MassSilicon+3*MassChlorine;
+        }else if (  *ParticleType == iClIonType){
+                *mass = MassChlorine;
+        }else if ( *ParticleType == iCl2IonType){
+                *mass = MassChlorine*2;
+        }
+}

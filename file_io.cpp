@@ -301,10 +301,6 @@ void write_to_vtk(std::string datatype, int cNx, int cNy, int cNz, double delta,
                  cout<<"The result is written to "<<Filename<<endl;
         }
 
-
-
-
-
 }
 
 

@@ -4,113 +4,11 @@
 
 using namespace std;
 
-void surface_reaction( int iCollisionTag, int iBeforeCollisionTag, double GrazingAngle, double IncidentAngle,
-                                                 int* ParticleType, double* mass, double* energy, int* iStatus, double* dNumMaterial, double** dNumSiClxs)
-
-{
-        int X_dir = 0, Y_dir = 1, Z_dir = 2;
-        int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
-        int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
-        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
-        double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
-        double MassArgon = 39.948*1.66053904E-27;  // unit: kg
-        double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
-        double MassElectron = 9.10938356E-31; // unit: kg
-        int ReactionExecution;
-        int ReactionIndex;
-        int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
-        int ReflectedParticle= 0;                              //--index for original reflected particle such as Ar*, Cl*
-
-        if ( iStatus[iCollisionTag] == iMaskStat){
-                if (  *ParticleType == iClRadicalType){
-                        *ParticleType = iClRadicalType;
-                }else if (  *ParticleType == iClIonType ){
-                        *ParticleType = 0;
-                }else if (  *ParticleType == iCl2IonType ){
-                        *ParticleType = 0;
-                }else if (   *ParticleType == iArIonType ){
-                        *ParticleType = 0;
-                }else if (  *ParticleType == iSiClgType ){
-                        *ParticleType = 0;
-                }else if (  *ParticleType == iSiCl2gType ){
-                        *ParticleType = 0;
-                }else if (  *ParticleType == iSiCl3gType ){
-                        *ParticleType = 0;
-                }
-        }else if ( iStatus[iCollisionTag] == iSubstrateStat ){
-
-                if( *ParticleType == iClRadicalType ){
-                        ClRadicalReaction(iCollisionTag, iStatus, dNumSiClxs, dNumMaterial, &ReactionExecution, &ReactionIndex);
-                        if (ReactionExecution == 1){
-                                *ParticleType = 0;
-                        }else{
-                                *ParticleType = iClRadicalType;
-                        }
-                }else if (  *ParticleType == iClIonType){
-                        ClIonReaction(iCollisionTag, iStatus, dNumSiClxs, dNumMaterial, *energy*Joule_to_eV, IncidentAngle,
-                                                       &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iCl2IonType){
-                        Cl2IonReaction(iCollisionTag, iStatus, dNumSiClxs, dNumMaterial, *energy*Joule_to_eV, IncidentAngle,
-                                                        &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iArIonType){
-                        ArIonReaction(iCollisionTag, iStatus, dNumSiClxs, dNumMaterial, *energy*Joule_to_eV, IncidentAngle,
-                                                        &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iSiClgType){
-                        redeposition(*ParticleType, iBeforeCollisionTag, iStatus, dNumSiClxs, dNumMaterial, &ReactionExecution, &ReactionIndex);
-                        if (  ReactionExecution == 1  ){
-                                *ParticleType = 0;
-                        }else{
-                                *ParticleType = iSiClgType;
-                        }
-                }else if (  *ParticleType == iSiCl2gType){
-                        redeposition(*ParticleType, iBeforeCollisionTag, iStatus, dNumSiClxs, dNumMaterial, &ReactionExecution, &ReactionIndex);
-                        if (  ReactionExecution == 1  ){
-                                *ParticleType = 0;
-                        }else{
-                                *ParticleType = iSiCl2gType;
-                        }
-                }else if ( *ParticleType == iSiCl3gType){
-                        redeposition(*ParticleType, iBeforeCollisionTag, iStatus, dNumSiClxs, dNumMaterial, &ReactionExecution, &ReactionIndex);
-                        if ( ReactionExecution == 1 ){
-                                *ParticleType = 0;
-                        }else{
-                                *ParticleType = iSiCl3gType;
-                        }
-                }
-        }
-        if( *ParticleType == iClRadicalType){
-                *mass = MassChlorine;
-        }else if ( *ParticleType == iSiClgType){
-                *mass = MassSilicon+MassChlorine;
-        }else if ( *ParticleType == iSiCl2gType){
-                *mass = MassSilicon+2*MassChlorine;
-        }else if ( *ParticleType == iSiCl3gType){
-                *mass = MassSilicon+3*MassChlorine;
-        }else if (  *ParticleType == iClIonType){
-                *mass = MassChlorine;
-        }else if ( *ParticleType == iCl2IonType){
-                *mass = MassChlorine*2;
-        }
-}
-
-
-
-
-
-
-
-
-
-void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMaterial, int* ReactionExecution, int* reaction_index){
+void cell::ClRadicalReaction(int itag, int* ReflectedParticle, int* reaction_index){
 
         double happen_or_not = ran3(&iRandTag);
-        //cout << "happen_or_not in Cl radical reaction = " << happen_or_not << endl;
         double p0_ClRadicalReaction [6] = {0.99, 0.40, 0.30, 0.02, 0.0001, 0.08};
         int number_of_reactions = 6;//p0_ClRadicalReaction.size();
-        int iVacuumStat = 0;
 
         //--calculation of total prob, and cumulative prob
         double ReactionProb  [number_of_reactions];
@@ -137,15 +35,13 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
         }
 
 
-
-
         if  ( happen_or_not < ReactionProb[0]  ){
                 //--reaction 1 : Si(s) + Cl --> SiCl(s)        p0_ClRadicalReaction[0] = 0.99
                 #pragma omp atomic
                 dNumSiClxs[itag][0]--;
                 #pragma omp atomic
                 dNumSiClxs[itag][1]++;
-                *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *reaction_index = 1;
         }else if  (  happen_or_not >= ReactionProb[0] && happen_or_not < ReactionProb[1]  ){
                 //--reaction 2 : SiCl(s) + Cl --> SiCl2(s)        p0_ClRadicalReaction[1] = 0.40
@@ -153,7 +49,7 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
                 dNumSiClxs[itag][1]--;
                 #pragma omp atomic
                 dNumSiClxs[itag][2]++;
-                *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *reaction_index = 2;
         }else if  (  happen_or_not >= ReactionProb[1] && happen_or_not < ReactionProb[2]  ){
                 //--reaction 3 : SiCl2(s) + Cl --> SiCl3(s)              p0_ClRadicalReaction[2] = 0.30
@@ -161,7 +57,7 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
                 dNumSiClxs[itag][2]--;
                 #pragma omp atomic
                 dNumSiClxs[itag][3]++;
-                *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *reaction_index = 3;
         }else if ( happen_or_not >= ReactionProb[2] && happen_or_not < ReactionProb[3]   ){
                 //--reaction 4 : SiCl2(s) + Cl --> SiCl(s) + Cl2         p0_ClRadicalReaction[3] = 0.02
@@ -169,7 +65,7 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
                 dNumSiClxs[itag][2]--;
                 #pragma omp atomic
                 dNumSiClxs[itag][1]++;
-                *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *reaction_index = 4;
         }else if  ( happen_or_not >= ReactionProb[3] && happen_or_not < ReactionProb[4]  ){
                 //--reaction 5 : SiCl3(s) + Cl --> SiCl4(g)                p0_ClRadicalReaction[4] = 0.0001
@@ -177,7 +73,7 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
                 dNumSiClxs[itag][3]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *reaction_index = 5;
         }else if ( happen_or_not >= ReactionProb[4] && happen_or_not < ReactionProb[5]  )  {
                 //--reaction 6 : SiCl3(s) + Cl --> SiCl2(s) + Cl2    p0_ClRadicalReaction[5] = 0.08
@@ -185,10 +81,10 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
                 dNumSiClxs[itag][3]--;
                 #pragma omp atomic
                 dNumSiClxs[itag][2]++;
-                *ReactionExecution = 1;
+                *ReflectedParticle = 0;
                 *reaction_index = 6 ;
         }else{
-                *ReactionExecution = 0;
+                *ReflectedParticle = iClRadicalType;
                 *reaction_index = 0;
         }
         if ( dNumMaterial[itag] == 0 ){
@@ -197,16 +93,11 @@ void ClRadicalReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNum
 }
 
 
-
-void redeposition( int AdsorbParticle, int itag, int* iStatus, double** dNumSiClxs, double* dNumMaterial,
-                                       int* ReactionExecution, int* reaction_index){
+void cell::Redeposition( int AdsorbParticle, int itag, int* ReflectedParticle, int* reaction_index){
 
         double happen_or_not = ran3(&iRandTag);
         double p0_redeposition [3] = {0.02, 0.02, 0.02};
-        //cout << "happen_or_not in redeposition reaction = " << happen_or_not << endl;
-        int iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
-        int iVacuumStat = 0;
-        int  iSubstrateStat = 1;
+
         //--reaction 8 : M(s) + SiClx(g)  --> M(s) + SiClx(s)   p = 0.02   x=1,2,3
         if ( AdsorbParticle == iSiClgType ){
                 if (   happen_or_not < p0_redeposition[0] ){
@@ -216,10 +107,10 @@ void redeposition( int AdsorbParticle, int itag, int* iStatus, double** dNumSiCl
                         dNumSiClxs[itag][1]++;
                         #pragma omp atomic
                         dNumMaterial[itag]++;
-                        *ReactionExecution = 1;
+                        *ReflectedParticle = 0;
                         *reaction_index = 8;
                 }else{
-                        *ReactionExecution = 0;
+                        *ReflectedParticle = iSiClgType;
                 }
         }else if ( AdsorbParticle == iSiCl2gType ){
                 if(  happen_or_not < p0_redeposition[1] ){
@@ -229,10 +120,10 @@ void redeposition( int AdsorbParticle, int itag, int* iStatus, double** dNumSiCl
                         dNumSiClxs[itag][2]++;
                         #pragma omp atomic
                         dNumMaterial[itag]++;
-                        *ReactionExecution = 1;
+                        *ReflectedParticle = 0;
                         *reaction_index = 8;
                 }else{
-                        *ReactionExecution = 0;
+                        *ReflectedParticle = iSiCl2gType;
                 }
         }else if (  AdsorbParticle == iSiCl3gType ){
                 if (   happen_or_not < p0_redeposition[2] ){
@@ -242,18 +133,17 @@ void redeposition( int AdsorbParticle, int itag, int* iStatus, double** dNumSiCl
                         dNumSiClxs[itag][3]++;
                         #pragma omp atomic
                         dNumMaterial[itag]++;
-                        *ReactionExecution = 1;
+                        *ReflectedParticle = 0;
                         *reaction_index = 8;
                 }else{
-                        *ReactionExecution = 0;
+                        *ReflectedParticle = iSiCl3gType;
                 }
         }
 }
 
 
 
-void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMaterial, double E, double incident_angle,
-                                                    int* ReactionExecution, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
+void cell::ClIonReaction(int itag, double E, double incident_angle, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
 
         double happen_or_not = ran3(&iRandTag);
         //cout << "happen_or_not in Cl ion reaction = " << happen_or_not << endl;
@@ -274,12 +164,6 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
         double next_angle;
         double angle_ratio;
         double EnhanceFactor;
-        int P_sputtering = 0;
-        int C_sputtering = 1;
-        int iSigType = 2, iSiCl2gType = 4, iSiCl3gType = 5, iClIonType = 7;
-        int iVacuumStat = 0;
-
-
 
         for (int i = 0; i < number_of_reactions; i++){
                 if(E >= Eth_ClIonReaction[i]){
@@ -314,8 +198,6 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 }
         }
 
-
-
         //--calculation of total prob, and cumulative prob
         double ReactionProb [number_of_reactions];
         double sumReactionProb = 0;
@@ -339,14 +221,12 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 }
         }
 
-
         if ( happen_or_not < ReactionProb[0]   ){
                 //--reaction 9 : Si(s) + Cl+ --> Si(g) + Cl*        p0_ClIonReaction[0] = 0.05    Eth = 25 eV    physical sputtering
                 #pragma omp atomic
                 dNumSiClxs[itag][0]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iClIonType;
                 *EmitParticle = iSigType ;
                 *reaction_index = 9;
@@ -356,7 +236,6 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][1]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = 0;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 10;
@@ -366,7 +245,6 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][1]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution =1;
                 *ReflectedParticle = 0;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 11;
@@ -376,7 +254,6 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][2]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 12;
@@ -386,12 +263,10 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][3]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 13;
         }else{
-                *ReactionExecution = 0;
                 *ReflectedParticle = iClIonType;
                 *EmitParticle = 0;
                 *reaction_index = 0;
@@ -405,8 +280,7 @@ void ClIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
 
 
 
-void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMaterial, double E, double incident_angle,
-                                                      int* ReactionExecution, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
+void cell::Cl2IonReaction(int itag, double E, double incident_angle, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
 
         double happen_or_not = ran3(&iRandTag);
         //cout << "happen_or_not in Cl2 ion reaction = " << happen_or_not << endl;
@@ -418,7 +292,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
         double phys_sputter_prob [10] = {0.55, 0.555, 0.60, 0.555, 0.85, 1.3, 1.355, 1.0, 0.75, 0.0};
         double chem_sputter_prob [10] = {1.00, 1.000, 1.00, 1.000, 1.00, 0.9, 0.800, 0.6, 0.30, 0.0};
 
-
         //--Calculation of prob of energy and prob of angle
         double prob_of_energy [number_of_reactions];
         double prob_of_angle [number_of_reactions];
@@ -428,12 +301,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
         double next_angle;
         double angle_ratio;
         double EnhanceFactor;
-
-        int P_sputtering = 0;
-        int C_sputtering = 1;
-        int iSigType = 2, iSiCl2gType = 4, iSiCl3gType = 5, iSiCl4gType = 6, iClIonType = 7, iCl2IonType = 8;
-       int iVacuumStat = 0;
-
 
         for (int i = 0; i < number_of_reactions; i++){
                 if(E >= Eth_Cl2IonReaction[i]){
@@ -467,7 +334,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 }
          }
 
-
         //--calculation of total prob, and cumulative prob
         double ReactionProb [number_of_reactions];
         double sumReactionProb = 0;
@@ -499,7 +365,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 dNumSiClxs[itag][0]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iCl2IonType;
                 *EmitParticle = iSigType ;
                 *reaction_index = 15;
@@ -509,7 +374,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 dNumSiClxs[itag][1]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 16;
@@ -519,7 +383,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 dNumSiClxs[itag][2]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iCl2IonType;
                 *EmitParticle = iSiCl2gType ;
                 *reaction_index = 17;
@@ -529,7 +392,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 dNumSiClxs[itag][2]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iClIonType;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 18;
@@ -539,7 +401,6 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 dNumSiClxs[itag][3]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iCl2IonType;
                 *EmitParticle = iSiCl3gType ;
                 *reaction_index = 19;
@@ -549,12 +410,10 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
                 dNumSiClxs[itag][3]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iClIonType;
-                *EmitParticle = iSiCl4gType ;
+                *EmitParticle = 0 ;
                 *reaction_index = 20;
         }else{
-                *ReactionExecution = 0;
                 *ReflectedParticle = iCl2IonType;
                 *EmitParticle = 0;
                 *reaction_index = 0;
@@ -566,10 +425,7 @@ void Cl2IonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMat
 }
 
 
-
-
-void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMaterial, double E, double incident_angle,
-                                                    int* ReactionExecution, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
+void cell::ArIonReaction(int itag,  double E, double incident_angle, int* ReflectedParticle, int* EmitParticle, int* reaction_index){
 
         double happen_or_not = ran3(&iRandTag);
         //cout << "happen_or_not in Ar ion reaction = " << happen_or_not << endl;
@@ -581,8 +437,6 @@ void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
         double phys_sputter_prob [10] = {0.55, 0.555, 0.60, 0.555, 0.85, 1.3, 1.355, 1.0, 0.75, 0.0};
         double chem_sputter_prob [10] = {1.00, 1.000, 1.00, 1.000, 1.00, 0.9, 0.800, 0.6, 0.30, 0.0};
 
-
-
         //--Calculation of prob of energy and prob of angle
         double prob_of_energy [number_of_reactions];
         double prob_of_angle [number_of_reactions];
@@ -592,11 +446,6 @@ void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
         double next_angle;
         double angle_ratio;
         double EnhanceFactor;
-
-        int P_sputtering = 0;
-        int C_sputtering = 1;
-        int iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5, iArIonType = 9;
-        int iVacuumStat = 0;
 
         for (int i = 0; i < number_of_reactions; i++){
                 if(E >= Eth_ArIonReaction[i]){
@@ -660,7 +509,6 @@ void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][0]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iArIonType ;
                 *EmitParticle = iSigType ;
                 *reaction_index = 22;
@@ -670,7 +518,6 @@ void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][1]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iArIonType;
                 *EmitParticle = iSiClgType;
                 *reaction_index = 23;
@@ -680,7 +527,6 @@ void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][2]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iArIonType;
                 *EmitParticle = iSiCl2gType;
                 *reaction_index = 24;
@@ -690,12 +536,10 @@ void ArIonReaction(int itag, int* iStatus, double** dNumSiClxs, double* dNumMate
                 dNumSiClxs[itag][3]--;
                 #pragma omp atomic
                 dNumMaterial[itag]--;
-                *ReactionExecution = 1;
                 *ReflectedParticle = iArIonType;
                 *EmitParticle = iSiCl3gType;
                 *reaction_index = 25;
         }else{
-                *ReactionExecution = 0;
                 *ReflectedParticle = iArIonType;
                 *EmitParticle = 0;
                 *reaction_index = 0;

@@ -22,9 +22,15 @@
 
 using namespace std;
 using json = nlohmann::json;
-
-//long MSEED = 161803398;
-//long iRandTag = 0;
+int X_dir = 0, Y_dir = 1, Z_dir = 2;
+int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
+int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
+int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
+double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
+double MassArgon = 39.948*1.66053904E-27;  // unit: kg
+double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
+double MassElectron = 9.10938356E-31; // unit: kg
+int P_sputtering = 0, C_sputtering = 1;
 
 int main(int argc, char* argv[])
 {
@@ -36,7 +42,7 @@ int main(int argc, char* argv[])
         double dx, dy, dz;
         int Nx, Ny, Nz, iSubstrateThickZ, iMaskThickZ, iTrenchWidthX, iMaskWidthX, iMaskLength, iGapWidthX, iGapWidthY,
                iNumMaterial, iNumMask;
-        int SurfaceSearchingRadius, SurfaceSearchingRange, SurfaceSearchingNumber ;
+        int SurfaceSearchingRadius;
 
         //--parameterd read from output setting
         string output_type, append, vtkDataType, directory, OutputFilename;
@@ -62,14 +68,6 @@ int main(int argc, char* argv[])
 
 
         double Lx, Ly, Lz ;
-        int X_dir = 0, Y_dir = 1, Z_dir = 2;
-        int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
-        int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
-        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
-        double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
-        double MassArgon = 39.948*1.66053904E-27;  // unit: kg
-        double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
-        double MassElectron = 9.10938356E-31; // unit: kg
 
 
 
@@ -147,8 +145,7 @@ int main(int argc, char* argv[])
                         iNumMaterial        = config["atom_number_in_material"];
                         iNumMask              = config["atom_number_in_mask"];
                         SurfaceSearchingRadius = config["surface_searching_radius"] ;
-                        SurfaceSearchingRange = 2*SurfaceSearchingRadius+1;
-                        SurfaceSearchingNumber = pow(  SurfaceSearchingRange, 3);
+
 
                 }else{
 	                    cout << "No mesh tag in input file! " << endl ;
@@ -555,14 +552,7 @@ int main(int argc, char* argv[])
 
         /* Pre-calculation of speed cutoffe */
         int ThermalParticleTypes = 6; //--Total number of thermal species, here we include Cl radical, Si(g), SiCl(g), SiCl2(g), and SiCl3(g)
-        /*
-        double SpeedcutoffThermalParicle [ThermalParticleTypes]; //--Array to store pre-calculated cutoff speed
-        SpeedcutoffThermalParicle[iClRadicalType] = CalculateSpeedCutoff(  MassChlorine, Temperature  );
-        SpeedcutoffThermalParicle[iSigType]              = CalculateSpeedCutoff(  MassSilicon, Temperature  );
-        SpeedcutoffThermalParicle[iSiClgType]          = CalculateSpeedCutoff(  MassSilicon+MassChlorine, Temperature  );
-        SpeedcutoffThermalParicle[iSiCl2gType]       = CalculateSpeedCutoff(  MassSilicon+2*MassChlorine, Temperature  );
-        SpeedcutoffThermalParicle[iSiCl3gType]       = CalculateSpeedCutoff(  MassSilicon+3*MassChlorine, Temperature  );
-        */
+
 
          /* Pre-calculation for particle generation probability */
         double TotalFlux = dClRadicalFlux+dClIonFlux+dCl2IonFlux+dArIonType;
@@ -572,26 +562,6 @@ int main(int argc, char* argv[])
         CumuProbIncidentParticle[2] = dCl2IonFlux/TotalFlux + CumuProbIncidentParticle[1];
         CumuProbIncidentParticle[3] = dArIonType/TotalFlux + CumuProbIncidentParticle[2];
 
-
-        /*Pre-calculation of particle size and initialization of six point particle*/
-        double SixPointParticle [6][3] = {  {-1, 0, 0}, {+1, 0, 0}, {0, -1, 0}, {0, +1, 0}, {0, 0, -1}, {0, 0, +1} };
-        double ParticleSizeX, ParticleSizeY, ParticleSizeZ;
-        ParticleSizeX = ParticleSizeFactor*dx;
-        ParticleSizeY = ParticleSizeFactor*dy;
-        ParticleSizeZ = ParticleSizeFactor*dz;
-
-
-        /*Pre-calculation for surface sites*/
-        int SurfaceSearchingIndex [SurfaceSearchingNumber][3];
-        for (int k = 0; k < SurfaceSearchingRange; k++){
-                for (int j = 0; j < SurfaceSearchingRange; j++){
-                        for(int i = 0; i < SurfaceSearchingRange; i++){
-                                SurfaceSearchingIndex[i+(j+k*SurfaceSearchingRange )*SurfaceSearchingRange ][0] = i - SurfaceSearchingRadius;
-                                SurfaceSearchingIndex[i+(j+k*SurfaceSearchingRange )*SurfaceSearchingRange ][1] = j - SurfaceSearchingRadius;
-                                SurfaceSearchingIndex[i+(j+k*SurfaceSearchingRange )*SurfaceSearchingRange ][2] = k -SurfaceSearchingRadius;
-                        }
-                }
-        }
 
         /*Pre-calculation of total particle number, time interval,  and output frequency*/
         double FluxArea = Lx*Ly;
@@ -612,49 +582,26 @@ int main(int argc, char* argv[])
         write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
                                      PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
 
-/*
-        #pragma acc enter data copyin(C1.iDimSize[0:3])
-        #pragma acc enter data copyin(C1.dDimLength[0:3])
-        #pragma acc enter data copyin(C1.dDimLength_per_cell[0:3])
-        #pragma acc enter data copyin(C1.iStatus[0:C1.iNumCell])
-        #pragma acc enter data copyin(C1.dNumSiClxs[0:C1.iNumCell*4])
-        #pragma acc enter data copyin(C1.iID_NBR[0:C1.iNumCell*27])
-        #pragma acc enter data copyin(C1.dNumMaterial[0:C1.iNumCell])
-        #pragma acc enter data copyin(C1.dNumMask[0:C1.iNumCell])
 
-*/
-
-
-
+        ran3_ini(0);
         for ( int indexOutputFile = 1; indexOutputFile <= TotalOutputFile; indexOutputFile++){
 
                 int* ParticleType = new int [TotalParticleInAFile];
                 double* mass = new double [TotalParticleInAFile];
+                double** dPos = new double* [TotalParticleInAFile];
                 double** Vel = new double* [TotalParticleInAFile];
                 double* energy = new double [TotalParticleInAFile];
-                double** dPos = new double* [TotalParticleInAFile];
                 for(int i =0; i<TotalParticleInAFile; i++){
                         dPos[i] = new double [3];
                         Vel[i] = new double [3];
                 }
 
+                C1.Generation(TotalParticleInAFile, Temperature, CumuProbIncidentParticle,cumulativeflux_ClIon, cumulativeflux_Cl2Ion,
+                                                cumulativeflux_ArIon, IonEnergy, IonAngle,NEUTRAL_THETA_SCALING, ION_THETA_SCALING,
+                                                NeutralThetaScalingFactor, IonThetaScalingFactor, ParticleType, mass, dPos, Vel, energy);
 
-                Generation(TotalParticleInAFile, Temperature, dx, dy, dz, Lx, Ly, Lz, CumuProbIncidentParticle,
-                                          cumulativeflux_ClIon, cumulativeflux_Cl2Ion, cumulativeflux_ArIon,
-                                          IonEnergy, IonAngle,
-                                          NEUTRAL_THETA_SCALING, ION_THETA_SCALING,
-                                          NeutralThetaScalingFactor, IonThetaScalingFactor,
-                                          ParticleType, mass, Vel, energy, dPos);
-
-
-                Propagation(TotalParticleInAFile, Temperature, PropagationTimestepNumber, ReemissionCosineLawPower,
-                                            ParticleType, mass, dPos, energy, Vel,
-                                            dx, dy, dz, Nx, Ny, Nz, Lx, Ly, Lz,
-                                            SixPointParticle, ParticleSizeX, ParticleSizeY, ParticleSizeZ,
-                                            C1.iStatus, C1.iID_NBR, C1.dNumMaterial, C1.dNumSiClxs, C1.dNumSiClxg,
-                                            SurfaceSearchingIndex, SurfaceSearchingNumber);
-
-
+                C1.Propagation(TotalParticleInAFile, Temperature, PropagationTimestepNumber, ReemissionCosineLawPower, ParticleSizeFactor,
+                                                   SurfaceSearchingRadius, ParticleType, mass, dPos, Vel, energy);
 
 
 
