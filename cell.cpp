@@ -1,11 +1,16 @@
 #include "etching.h"
 #include "cell.h"
 #include "jacobi_eigenvalue.h"
+#include "rand.h"
 
 using namespace std;
 #pragma acc routine seq
 void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
 {
+        int X_dir = 0;
+        int Y_dir = 1;
+        int Z_dir = 2;
+
         cell::iDimSize[0] = ix;
         cell::iDimSize[1] = iy;
         cell::iDimSize[2] = iz;
@@ -98,10 +103,14 @@ void cell::setNBR()
 
 }
 
+
+
+
 #pragma acc routine seq
 void cell::setStatus(int iTagCell, int iST, int iNum)
 {
-
+        int iVacuumStat = 0;
+       int iSubstrateStat = 1, iMaskStat = 2;
         cell::iStatus[iTagCell]       = iST;
         if(iST == iVacuumStat ) // vacuumdvec
         {
@@ -137,12 +146,14 @@ void cell::setStatus(int iTagCell, int iST, int iNum)
 
 //input: itag, iPos, incident_V; output: norm_surface_N, norm_reflected_V, grazing_angle, incident_angle
 #pragma acc routine seq
-void cell::surface_normal(int searching_index[][3], int searching_number, int itag, int* iPos,
-                                                        double* incident_V, double* norm_surface_N, double* norm_reflected_V, double* grazing_angle, double* incident_angle ){
-        vector<vector<double>> Surfacesites ;
+void surface_normal(int searching_index [][3], int searching_number, int itag, int* iPos, double* incident_V,
+                                              int Nx, int Ny, int Nz, int* iStatus, int** iID_NBR, int iVacuumStat, int iSubstrateStat, int iMaskStat,
+                                             double* norm_surface_N, double* norm_reflected_V, double* grazing_angle, double* incident_angle ){
+        double Surfacesites [searching_number][3];
         int NN_x, NN_y, NN_z, itagNeighbor;
         int NN_x_for_cal_itag, NN_y_for_cal_itag, NN_z_for_cal_itag;
-
+        int X_dir = 0, Y_dir = 1, Z_dir = 2;
+        int indexSurfacesites = 0;
         //--determine surface sites
         for (int i = 0; i < searching_number; i++){
                 NN_x = iPos[X_dir] + searching_index[i][0];
@@ -153,34 +164,27 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 NN_z_for_cal_itag = NN_z;
 
                 //--periodic boundary condition
-                while (NN_x_for_cal_itag >= cell::iDimSize[X_dir] )  NN_x_for_cal_itag -= cell::iDimSize[X_dir];
-                while (NN_y_for_cal_itag >= cell::iDimSize[Y_dir] )  NN_y_for_cal_itag -= cell::iDimSize[Y_dir];
-                while (NN_z_for_cal_itag >= cell::iDimSize[Z_dir] )  NN_z_for_cal_itag -= cell::iDimSize[Z_dir];
-                while (NN_x_for_cal_itag < 0                )                                NN_x_for_cal_itag += cell::iDimSize[X_dir];
-                while (NN_y_for_cal_itag < 0                )                                NN_y_for_cal_itag += cell::iDimSize[Y_dir];
-                while (NN_z_for_cal_itag < 0                )                                NN_z_for_cal_itag += cell::iDimSize[Z_dir];
+                while (NN_x_for_cal_itag >= Nx )  NN_x_for_cal_itag -= Nx;
+                while (NN_y_for_cal_itag >= Ny )  NN_y_for_cal_itag -= Ny;
+                while (NN_z_for_cal_itag >= Nz )  NN_z_for_cal_itag -= Nz;
+                while (NN_x_for_cal_itag < 0                )                                NN_x_for_cal_itag += Nx;
+                while (NN_y_for_cal_itag < 0                )                                NN_y_for_cal_itag += Ny;
+                while (NN_z_for_cal_itag < 0                )                                NN_z_for_cal_itag += Nz;
 
                 //--calculated itag of Neighboring cell
-                itagNeighbor = NN_x_for_cal_itag + ( NN_y_for_cal_itag + NN_z_for_cal_itag * cell::iDimSize[1])*cell::iDimSize[0];
+                itagNeighbor = NN_x_for_cal_itag + ( NN_y_for_cal_itag + NN_z_for_cal_itag * Ny)*Nx;
 
 
                 //--check if the cell property of center cell and neighboring cell same
-                if (cell::iStatus[itagNeighbor] == iSubstrateStat ){
+                if ( iStatus[itagNeighbor] == iSubstrateStat || iStatus[itagNeighbor] == iMaskStat){
                         //--check six faces of neighboring cells are exposed to vacuum
-                        if (  cell::iStatus[cell::iID_NBR[itagNeighbor][4]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][12]] == iVacuumStat ||
-                                cell::iStatus[cell::iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][14]] == iVacuumStat ||
-                                cell::iStatus[cell::iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][22]] == iVacuumStat){
-                                Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), cell::dNumMaterial[itagNeighbor]});
-                                //cout << "dNumMaterial[itagNeighbor] = " << dNumMaterial[itagNeighbor] << endl;
-                                //cin.get();
-                        }
-                }else if ( cell::iStatus[itagNeighbor] == iMaskStat  ){
-                        if (  cell::iStatus[cell::iID_NBR[itagNeighbor][4]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][12]] == iVacuumStat ||
-                                cell::iStatus[cell::iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][14]] == iVacuumStat ||
-                                cell::iStatus[cell::iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[cell::iID_NBR[itagNeighbor][22]] == iVacuumStat){
-                                Surfacesites.push_back({double(NN_x), double(NN_y), double(NN_z), cell::dNumMask[itagNeighbor]});
-                                //cout << "dNumMask[itagNeighbor] = " << dNumMask[itagNeighbor] << endl;
-                                //cin.get();
+                        if (  iStatus[iID_NBR[itagNeighbor][4]] == iVacuumStat || iStatus[iID_NBR[itagNeighbor][12]] == iVacuumStat ||
+                                iStatus[iID_NBR[itagNeighbor][10]] == iVacuumStat || iStatus[iID_NBR[itagNeighbor][14]] == iVacuumStat ||
+                                iStatus[iID_NBR[itagNeighbor][16]] == iVacuumStat || iStatus[iID_NBR[itagNeighbor][22]] == iVacuumStat){
+                                Surfacesites[indexSurfacesites][0] = double(NN_x);
+                                Surfacesites[indexSurfacesites][1] = double(NN_y);
+                                Surfacesites[indexSurfacesites][2] = double(NN_z);
+                                indexSurfacesites++;
                         }
                 }
         }
@@ -193,19 +197,19 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
         xbar = 0; ybar = 0; zbar = 0; xsum = 0; ysum = 0; zsum = 0; numSites = 0;
         A11 = 0; A12 = 0; A13 = 0; A21 = 0; A22 = 0; A23 = 0; A31 = 0; A32 = 0; A33 = 0;
 
-        for(int i =0; i< Surfacesites.size(); i++){
+        for(int i =0; i< indexSurfacesites; i++){
                 xsum = xsum + Surfacesites[i][X_dir]*Surfacesites[i][3];
                 ysum = ysum + Surfacesites[i][Y_dir]*Surfacesites[i][3];
                 zsum = zsum + Surfacesites[i][Z_dir]*Surfacesites[i][3];
-                numSites = numSites + Surfacesites[i][3];
+                numSites++;
         }
-        if ( numSites == 0)  cout << "numSites = 0" << endl;
+
         xbar = xsum/numSites;
         ybar = ysum/numSites;
         zbar = zsum/numSites;
 
         //--calculated surface normal
-        for(int i = 0; i < Surfacesites.size(); i++){
+        for(int i =0; i< indexSurfacesites; i++){
                 A11 = A11 + (Surfacesites[i][X_dir] - xbar)*(Surfacesites[i][X_dir] - xbar)*Surfacesites[i][3];
                 A22 = A22 + (Surfacesites[i][Y_dir] - ybar)*(Surfacesites[i][Y_dir] - ybar)*Surfacesites[i][3];
                 A33 = A33 + (Surfacesites[i][Z_dir] - zbar)*(Surfacesites[i][Z_dir] - zbar)*Surfacesites[i][3];
@@ -239,24 +243,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
         norm_surface_N[X_dir] = V[minVal_index*3+X_dir];
         norm_surface_N[Y_dir] = V[minVal_index*3+Y_dir];
         norm_surface_N[Z_dir] = V[minVal_index*3+Z_dir];
-        /*
-        if ( detA != 0){
-                cout << "norm_surface_N[X_dir] = " << norm_surface_N[X_dir] << endl;
-                cout << "norm_surface_N[Y_dir] = " << norm_surface_N[Y_dir] << endl;
-                cout << "norm_surface_N[Z_dir] = " << norm_surface_N[Z_dir] << endl;
-                cout << "V[0] V[1] V[2] = " << V[0] << "  " << V[1] << "  " << V[2] << "  " << D[0] << endl;
-                cout << "V[3] V[4] V[5] = " << V[3] << "  " << V[4] << "  " << V[5] << "  " << D[1] << endl;
-                cout << "V[6] V[7] V[8] = " << V[6] << "  " << V[7] << "  " << V[8] << "  " << D[2] << endl;
-                cout << A11 << "    " << A12 << "    " << A13 << endl;
-                cout << A21 << "    " << A22 << "    " << A23 << endl;
-                cout << A31 << "    " << A32 << "    " << A33 << endl;
-                cout << "V'[0] V'[1] V'[2] = " << (A11*V[0]+A12*V[1]+A13*V[2])/V[0] <<  "  " << (A21*V[0]+A22*V[1]+A23*V[2])/V[1] << "  " << (A31*V[0]+A32*V[1]+A33*V[2])/V[2] << endl;
-                cout << "V'[3] V'[4] V'[5] = " << (A11*V[3]+A12*V[4]+A13*V[5])/V[3] <<  "  " << (A21*V[3]+A22*V[4]+A23*V[5])/V[4] << "  " << (A31*V[3]+A32*V[4]+A33*V[5])/V[5] << endl;
-                cout << "V'[6] V'[7] V'[8] = " << (A11*V[6]+A12*V[7]+A13*V[8])/V[6] <<  "  " << (A21*V[6]+A22*V[7]+A23*V[8])/V[7] << "  " << (A31*V[6]+A32*V[7]+A33*V[8])/V[8] << endl;
-                for(int i =0; i< Surfacesites.size(); i++)    cout << Surfacesites[i][X_dir] << " " << Surfacesites[i][Y_dir] << " " << Surfacesites[i][Z_dir] << endl;
-                cin.get();
-        }
-        */
+
         //--determine the direction of the surface normal
         int poll_positive = 0;
         int poll_negative = 0;
@@ -269,18 +256,14 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 poll_y = floor(iPos[Y_dir] + 2*i*norm_surface_N[Y_dir]);
                 poll_z = floor(iPos[Z_dir] + 2*i*norm_surface_N[Z_dir]);
                 //--periodic boundary condition
-                while ( poll_x >= cell::iDimSize[X_dir] )  poll_x -= cell::iDimSize[X_dir];
-                while ( poll_y >= cell::iDimSize[Y_dir] )  poll_y -= cell::iDimSize[Y_dir];
-                while ( poll_z >= cell::iDimSize[Z_dir] )  poll_z -= cell::iDimSize[Z_dir];
-                while ( poll_x < 0                )                                poll_x += cell::iDimSize[X_dir];
-                while ( poll_y < 0                )                                poll_y += cell::iDimSize[Y_dir];
-                while ( poll_z < 0                )                                poll_z += cell::iDimSize[Z_dir];
-                /*
-                cout << "poll positive :" << endl;
-                cout << poll_x << " " << poll_y << " " << poll_z << endl;
-                */
-                itag_poll = poll_x + (poll_y + poll_z*cell::iDimSize[1])*cell::iDimSize[0];
-                if ( cell::iStatus[itag_poll] == iVacuumStat ){
+                while ( poll_x >= Nx )  poll_x -= Nx;
+                while ( poll_y >= Ny )  poll_y -= Ny;
+                while ( poll_z >= Nz )  poll_z -= Nz;
+                while ( poll_x < 0       )   poll_x += Nx;
+                while ( poll_y < 0       )   poll_y += Ny;
+                while ( poll_z < 0       )   poll_z += Nz;
+                itag_poll = poll_x + (poll_y + poll_z*Ny)*Nx;
+                if ( iStatus[itag_poll] == iVacuumStat ){
                         poll_positive++;
                 }
         }
@@ -290,18 +273,14 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                 poll_y = floor(iPos[Y_dir] - 2*i*norm_surface_N[Y_dir]);
                 poll_z = floor(iPos[Z_dir] - 2*i*norm_surface_N[Z_dir]);
                 //--periodic boundary condition
-                while ( poll_x >= cell::iDimSize[X_dir] )  poll_x -= cell::iDimSize[X_dir];
-                while ( poll_y >= cell::iDimSize[Y_dir] )  poll_y -= cell::iDimSize[Y_dir];
-                while ( poll_z >= cell::iDimSize[Z_dir] )  poll_z -= cell::iDimSize[Z_dir];
-                while ( poll_x < 0                )                                poll_x += cell::iDimSize[X_dir];
-                while ( poll_y < 0                )                                poll_y += cell::iDimSize[Y_dir];
-                while ( poll_z < 0                )                                poll_z += cell::iDimSize[Z_dir];
-                /*
-                cout << "poll negative :" << endl;
-                cout << poll_x << " " << poll_y << " " << poll_z << endl;
-                */
-                itag_poll = poll_x + (poll_y + poll_z*cell::iDimSize[1])*cell::iDimSize[0];
-                if ( cell::iStatus[itag_poll] == iVacuumStat ){
+                while ( poll_x >= Nx )  poll_x -= Nx;
+                while ( poll_y >= Ny )  poll_y -= Ny;
+                while ( poll_z >= Nz )  poll_z -= Nz;
+                while ( poll_x < 0       )   poll_x += Nx;
+                while ( poll_y < 0       )   poll_y += Ny;
+                while ( poll_z < 0       )   poll_z += Nz;
+                itag_poll = poll_x + (poll_y + poll_z*Ny)*Nx;
+                if ( iStatus[itag_poll] == iVacuumStat ){
                         poll_negative++;
                 }
         }
@@ -316,14 +295,13 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                  norm_surface_N[Y_dir] = (-1)*norm_surface_N[Y_dir];
                  norm_surface_N[Z_dir] = (-1)*norm_surface_N[Z_dir];
          }else if (poll_positive == poll_negative){
+                 /*
                  random_device rd;
                  default_random_engine generator( rd() );  //--random number generator
                  uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
-                 double rdd = unif(generator);
-
-                 cout << "poll_positive = " << poll_positive << endl;
-                 cout << "poll_negative = " << poll_negative << endl;
-                 cout << "norm surface N before = " << norm_surface_N[X_dir] << " " << norm_surface_N[Y_dir] << " " << norm_surface_N[Z_dir] << endl;
+                 */
+                 long iRandTag = 0;
+                 double rdd = ran3(&iRandTag);
 
                  if( rdd < 0.5 ){
                          norm_surface_N[X_dir] = norm_surface_N[X_dir];
@@ -334,9 +312,6 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
                          norm_surface_N[Y_dir] = (-1)*norm_surface_N[Y_dir];
                          norm_surface_N[Z_dir] = (-1)*norm_surface_N[Z_dir];
                   }
-
-                  //cout << "norm surface N after = " << norm_surface_N[X_dir] << " " << norm_surface_N[Y_dir] << " " << norm_surface_N[Z_dir] << endl;
-                  //cin >> poll_negative ;
          }
 
 
@@ -370,130 +345,7 @@ void cell::surface_normal(int searching_index[][3], int searching_number, int it
         }
         *grazing_angle =  90 - *incident_angle;
 
-        /*
-        if ( cell::iStatus[itag] == iMaskStat){
-                for (int i = 0; i < Surfacesites.size(); i++){
-                        cout << Surfacesites[i][0] << " " << Surfacesites[i][1] << " " << Surfacesites[i][2] << endl;
-                }
-                cout << "norm X = " << norm_surface_N[X_dir] <<endl;
-                cout << "norm Y = " << norm_surface_N[Y_dir] <<endl;
-                cout << "norm Z = " << norm_surface_N[Z_dir] <<endl;
-                cout << "incident angle = " << *incident_angle << endl;
-                cin.get();
-        }
-        */
-
-
 }
-
-
-
-
-void cell::setStatusAll(int iST, int iNum)
-{
-        int i;
-        for(i=0; i<cell::iNumCell; i++)
-        {
-                cell::setStatus(i,iST,iNum);
-        }
-}
-
-void cell::setStatusPlane(int inorm, int iConst, int iST, int iNum)
-{
-        int i[3];
-        int iTagCell;
-        for(i[0]=0; i[0]<cell::iDimSize[0]; i[0]++)
-        {
-                for(i[1]=0; i[1]<cell::iDimSize[1]; i[1]++)
-                {
-                        for(i[2]=0; i[2]<cell::iDimSize[2];i[2]++)
-                        {
-                                if(i[inorm] == iConst)
-                                {
-                                        iTagCell = i[0] + (i[1] + i[2] * cell::iDimSize[1]) * cell::iDimSize[0];
-                                        cell::setStatus(iTagCell,iST,iNum);
-                                }
-                        }
-                }
-        }
-}
-
-
-void cell::setStatusLine(int *idir, int *ipos, int iLength, int iST, int iNum)
-{
-    int ii,jj;
-    int increasement;
-    int iTagCell;
-        increasement = idir[0] + (idir[1] + idir[2] * cell::iDimSize[1]) * cell::iDimSize[0];
-        jj           = ipos[0] + (ipos[1] + ipos[2] * cell::iDimSize[1]) * cell::iDimSize[0];
-        for (ii=0; ii<iLength; ii++)
-        {
-            iTagCell = jj + ii * increasement;
-            cell::setStatus(iTagCell,iST, iNum);
-        }
-}
-
-
-void cell::setInterFace(int i){
-    int j;
-        if(cell::iStatus[i] == iSubstrateStat || cell::iStatus[i] == iMaskStat ){
-            for (j=0;j<27;j++){
-                if(cell::iStatus[cell::iID_NBR[i][j]] == iVacuumStat){
-                    cell::iStatus[i] = iInterS_VStat;
-                }
-            }
-        }
-}
-
-
-void cell::setInterFace2(int i){
-    int j, iTagNbr;
-    int ix[6] = {12, 14, 10 , 16, 4, 22};
-        if(cell::iStatus[i] == iVacuumStat){
-            for (j=0;j<6;j++){
-                iTagNbr = cell::iID_NBR[i][ix[j]];
-                if(cell::iStatus[iTagNbr] == iSubstrateStat || cell::iStatus[iTagNbr] == iMaskStat){
-                    cell::iStatus[iTagNbr] = iInterS_VStat;
-                }
-            }
-        }
-}
-
-
-void cell::setInterFace4Vacuum(int i){
-    int j, iTagNbr;
-    int ix[6] = {12, 14, 10 , 16, 4, 22};
-    if(cell::iStatus[i] == iVacuumStat){
-        for (j=0;j<6;j++){
-            iTagNbr = cell::iID_NBR[i][ix[j]];
-            if(cell::iStatus[iTagNbr] == iSubstrateStat){
-                cell::iStatus[iTagNbr] = iInterS_VStat;
-            }else if(cell::iStatus[iTagNbr] == iMaskStat){
-                cell::iStatus[iTagNbr] = iInterM_VStat;
-            }
-        }
-    }
-}
-
-
-void cell::TransNeutral4Vacuum(int i){
-    int j;
-    int ix[6] = {12, 14, 10 , 16, 4, 22};
-    int itmpcont = 0;
-
-    for (j=0;j<6;j++){
-        if(cell::iStatus[cell::iID_NBR[i][ix[j]]] == iSubstrateStat){
-            itmpcont += 1;
-        }
-    }
-    for (j=0;j<6;j++){
-        if(cell::iStatus[cell::iID_NBR[i][ix[j]]] == iSubstrateStat){
-            cell::dNumNeutral[cell::iID_NBR[i][ix[j]]] = cell::dNumNeutral[i] / itmpcont;
-        }
-    }
-}
-
-
 
 
 

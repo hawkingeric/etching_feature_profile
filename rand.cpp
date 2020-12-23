@@ -1,7 +1,9 @@
 #include "rand.h"
 #include "etching.h"
-    long iRandTag = 0;
-    int RandomNumberCount = 0;
+
+long iRandTag = 0;
+int RandomNumberCount = 0;
+
 #define IM1 2147483563
 #define IM2 2147483399
 #define AM (1.0/IM1)
@@ -16,6 +18,16 @@
 #define NDIV (1+IMM1/NTAB)
 #define EPS 1.2e-7
 #define RNMX (1.0-EPS)
+
+static int inext;
+#pragma acc declare create(inext)
+static int inextp;
+#pragma acc declare create(inextp)
+static long ma[56];                         //The value 56 (range ma[1..55]) is special and
+#pragma acc declare create(ma)
+static int iff=0;                           //should not be modified; see Knuth
+#pragma acc declare create(iff)
+
 
 /*
 Long period (> 2 × 1018) random number generator of L’Ecuyer with Bays-Durham shuffle
@@ -64,29 +76,38 @@ else return temp;
 #define MBIG 1000000000
 //#define MSEED 161803398
 static long MSEED = 161803398;
+#pragma acc declare create(MSEED)
+
 #define MZ 0
 #define FAC (1.0/MBIG)
 //According to Knuth, any large MBIG, and any smaller (but still large) MSEED can be substituted
 //for the above values.
 
+#pragma acc routine seq
 float ran3(long *idum)
 
 //Returns a uniform random deviate between 0.0 and 1.0. Set idum to any negative value to
 //initialize or reinitialize the sequence.
 {
-static int inext,inextp;
-static long ma[56];                         //The value 56 (range ma[1..55]) is special and
-static int iff=0;                           //should not be modified; see Knuth.
+
+
+//        int inext,inextp;
+ //       long ma[56];                         //The value 56 (range ma[1..55]) is special and
+  //      int iff=0;                           //should not be modified; see Knuth.
+
+
 long mj,mk;
 int i,ii,k;
-
-RandomNumberCount++;
+//RandomNumberCount++;
 
 if (*idum < 0 || iff == 0) {                //Initialization.
     iff=1;
-    mj=labs(MSEED-labs(*idum));                 //Initialize ma[55] using the seed idum and the
+    if (*idum < 0)   *idum = (-1)**idum;
+    mj=MSEED-*idum;                 //Initialize ma[55] using the seed idum and the
+    if (mj < 0) mj=(-1)*mj;
     mj %= MBIG;                                 //large number MSEED.
     ma[55]=mj;
+    #pragma acc update device (ma)
     mk=1;
     for (i=1;i<=54;i++) {                       //Now initialize the rest of the table,
         ii=(21*i) % 55;                             //in a slightly random order,
@@ -97,16 +118,28 @@ if (*idum < 0 || iff == 0) {                //Initialization.
     }
     for (k=1;k<=4;k++)                          //We randomize them by “warming up the generator.”
         for (i=1;i<=55;i++) {
+            #pragma acc atomic update
             ma[i] -= ma[1+(i+30) % 55];
-            if (ma[i] < MZ) ma[i] += MBIG;
+            if (ma[i] < MZ){
+                    #pragma acc atomic update
+                    ma[i] += MBIG;
+            }
         }
         inext=0;                                    //Prepare indices for our first generated number.
+        #pragma acc update device (inext)
         inextp=31;                                  //The constant 31 is special; see Knuth.
+        #pragma acc update device (inextp)
         *idum=1;
 }
                                             //Here is where we start, except on initialization.
-if (++inext == 56) inext=1;                 //Increment inext and inextp, wrapping around
-if (++inextp == 56) inextp=1;               //56 to 1.
+if (++inext == 56){
+        inext=1;                 //Increment inext and inextp, wrapping around
+        #pragma acc update device (inext)
+}
+if (++inextp == 56){
+        inextp=1;               //56 to 1.
+        #pragma acc update device (inextp)
+}
 mj=ma[inext]-ma[inextp];                    //Generate a new random number subtractively.
 if (mj < MZ) mj += MBIG;                    //Be sure that it is in range.
 ma[inext]=mj;                               //Store it,
@@ -114,6 +147,7 @@ ma[inext]=mj;                               //Store it,
 return mj*FAC;                              //and output the derived uniform deviate.
 
 }
+
 
 void ran3_ini(int seed){
     MSEED +=seed;

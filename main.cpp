@@ -7,36 +7,31 @@
 #include "json.hpp"
 #include "rand.h"
 #include "queue"
-
+#include "openacc.h"
+#include "math.h"
+#include "cmath"
 #define N 100
 #define numBlocks 1
 #define threadsPerBlock 100
 
+
+
+
+
+
+
 using namespace std;
 using json = nlohmann::json;
 
-double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
-double MassArgon = 39.948*1.66053904E-27;  // unit: kg
-double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
-double MassElectron = 9.10938356E-31; // unit: kg
-int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2, iInterS_VStat = 3, iInterM_VStat = 4;
-int P_sputtering = 0;
-int C_sputtering = 1;
-int X_dir = 0, Y_dir = 1, Z_dir = 2;
-const int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5, iSiCl4gType = 6;
-const int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
-double E0 = 100; //--unit: eV
-
-
-
-
+//long MSEED = 161803398;
+//long iRandTag = 0;
 
 int main(int argc, char* argv[])
 {
 
 
         /* Declaration*/
-        //--parameterf read from mesh
+        //--parameter read from mesh
         string inputJsonFile, tmpString, geometry, meshfile;
         double dx, dy, dz;
         int Nx, Ny, Nz, iSubstrateThickZ, iMaskThickZ, iTrenchWidthX, iMaskWidthX, iMaskLength, iGapWidthX, iGapWidthY,
@@ -66,16 +61,15 @@ int main(int argc, char* argv[])
 
 
 
-
-
-
         double Lx, Ly, Lz ;
-        int reaction_number[26] = {0};  //--for reaction index from 1 - 26
-        double epsilon_0 = 0.0;  //--unit: eV
-        double epsilon_s = 50;  //--unit: eV
-        double theta_0 = 30;  //--unit: degree
-        double gamma_0 = 0.85;  //--a scaling factor, no unit
-
+        int X_dir = 0, Y_dir = 1, Z_dir = 2;
+        int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
+        int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
+        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
+        double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
+        double MassArgon = 39.948*1.66053904E-27;  // unit: kg
+        double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
+        double MassElectron = 9.10938356E-31; // unit: kg
 
 
 
@@ -485,13 +479,6 @@ int main(int argc, char* argv[])
                                 }
 
                                 C1.initial(Nx, Ny, Nz, Lx, Ly, Lz);
-                                //cout << "Ny = " << Ny << endl;
-                                //cout << "Nz = " << Nz << endl;
-                                //cout << "dx = " << dx << endl;
-                                //cout << "dy = " << dy << endl;
-                                //cout << "dz = " << dz << endl;
-                                //cout << C1.iNumCell << endl;
-
                         }
 
                         //cout << data << endl;
@@ -562,40 +549,28 @@ int main(int argc, char* argv[])
                          }
 	            }
 	            in.close();
-/*
-	            cout << "C1.dNumSiClxs[0][0]" << C1.dNumSiClxs[0][0] << endl;
-	            cout << "C1.dNumSiClxs[0][1]" << C1.dNumSiClxs[0][1] << endl;
-	            cout << "C1.dNumSiClxs[0][2]" << C1.dNumSiClxs[0][2] << endl;
-	            cout << "C1.dNumSiClxs[0][3]" << C1.dNumSiClxs[0][3] << endl;
-*/
+
         }
-
-
-
-
-        /*random number generation*/
-        random_device rd;
-        default_random_engine generator( rd() );  //--random number generator
-        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
 
 
         /* Pre-calculation of speed cutoffe */
         int ThermalParticleTypes = 6; //--Total number of thermal species, here we include Cl radical, Si(g), SiCl(g), SiCl2(g), and SiCl3(g)
+        /*
         double SpeedcutoffThermalParicle [ThermalParticleTypes]; //--Array to store pre-calculated cutoff speed
         SpeedcutoffThermalParicle[iClRadicalType] = CalculateSpeedCutoff(  MassChlorine, Temperature  );
         SpeedcutoffThermalParicle[iSigType]              = CalculateSpeedCutoff(  MassSilicon, Temperature  );
         SpeedcutoffThermalParicle[iSiClgType]          = CalculateSpeedCutoff(  MassSilicon+MassChlorine, Temperature  );
         SpeedcutoffThermalParicle[iSiCl2gType]       = CalculateSpeedCutoff(  MassSilicon+2*MassChlorine, Temperature  );
         SpeedcutoffThermalParicle[iSiCl3gType]       = CalculateSpeedCutoff(  MassSilicon+3*MassChlorine, Temperature  );
-
+        */
 
          /* Pre-calculation for particle generation probability */
         double TotalFlux = dClRadicalFlux+dClIonFlux+dCl2IonFlux+dArIonType;
-        vector<double> GenerationProbIncidentParticle;
-        GenerationProbIncidentParticle.push_back(dClRadicalFlux/TotalFlux);
-        GenerationProbIncidentParticle.push_back(dClIonFlux/TotalFlux);
-        GenerationProbIncidentParticle.push_back(dCl2IonFlux/TotalFlux);
-        GenerationProbIncidentParticle.push_back(dArIonType/TotalFlux);
+        double CumuProbIncidentParticle [4];
+        CumuProbIncidentParticle[0] = dClRadicalFlux/TotalFlux;
+        CumuProbIncidentParticle[1] = dClIonFlux/TotalFlux + CumuProbIncidentParticle[0];
+        CumuProbIncidentParticle[2] = dCl2IonFlux/TotalFlux + CumuProbIncidentParticle[1];
+        CumuProbIncidentParticle[3] = dArIonType/TotalFlux + CumuProbIncidentParticle[2];
 
 
         /*Pre-calculation of particle size and initialization of six point particle*/
@@ -618,13 +593,11 @@ int main(int argc, char* argv[])
                 }
         }
 
-
         /*Pre-calculation of total particle number, time interval,  and output frequency*/
         double FluxArea = Lx*Ly;
         double material_density = 5.0*1E28; //--density of Si in unit of m^-3
-
         double ParticleTimeInterval = material_density*dx*dy*dz/(TotalFlux*1E4)/FluxArea;  //--convert flux unit from cm^-2 to m^-2
-        long long  int TotalParticleInAFile;
+        int TotalParticleInAFile;
         cout  << "The area of incidence (A) = " << FluxArea << " m^2" << endl;
         cout << "The total flux (J) = "<< TotalFlux*1E4 << " m^-2 s^-1" << endl;
         cout << "The number of atoms in a pseudo-particle (Ns) = " << int(material_density*dx*dy*dz) << endl;
@@ -639,567 +612,61 @@ int main(int argc, char* argv[])
         write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
                                      PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
 
+/*
+        #pragma acc enter data copyin(C1.iDimSize[0:3])
+        #pragma acc enter data copyin(C1.dDimLength[0:3])
+        #pragma acc enter data copyin(C1.dDimLength_per_cell[0:3])
+        #pragma acc enter data copyin(C1.iStatus[0:C1.iNumCell])
+        #pragma acc enter data copyin(C1.dNumSiClxs[0:C1.iNumCell*4])
+        #pragma acc enter data copyin(C1.iID_NBR[0:C1.iNumCell*27])
+        #pragma acc enter data copyin(C1.dNumMaterial[0:C1.iNumCell])
+        #pragma acc enter data copyin(C1.dNumMask[0:C1.iNumCell])
+
+*/
+
+
 
         for ( int indexOutputFile = 1; indexOutputFile <= TotalOutputFile; indexOutputFile++){
 
-
-
-                #pragma omp parallel for
-                for (int indexParticle = 0;   indexParticle < TotalParticleInAFile;   indexParticle++){
-
-                        particle P1;                                            //--Generate a particle
-                        P1.setInitialType( GenerationProbIncidentParticle );  //--choose a particular type of particle
-                        double rdd1, rdd2, rdd3;                                //--random number for selecting ion energy and angle
-                        int ReactionExecution = 0;                              //--determine if a reaction happen
-                        int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
-                        int ReflectedParticle = 0;                              //--index for original reflected particle such as Ar*, Cl*
-                        int ReactionIndex = 0;                                 //--index for a particular reaction formula
-                        double normSurfaceNormal [3];                              //--normalized surface normal vector (x, y, z)
-                        double normReflectedVelocity [3];                            //--normalized reflected velocity vector (x, y, z)
-                        double GrazingAngle = 0;                               //--angle between surface and velocity
-                        double IncidentAngle = 0;                              //--angle between normal and velocity
-                        int old_iPos [3];                                       //--to record the iPos (x, y, z) before propogation
-                        double old_dPos [3];                                    //--to record the dPos (x, y, z) before propagation
-                        int itag;                                               //--itag of particle center
-                        int old_itag;
-                        int itag_six_point [6] ;                                //--itag of particle's six neighboring points
-                        double dPos_six_point [6][3] ;                          //--dPos (x, y, z) of particle's six neighboring points
-                        int iPos_six_point [6][3] ;                             //--iPos (x, y, z) of particle's siz neighboring points
-                        int CountPointInSolid;                               //--to count how many point of a seven-point molecule is on solid cell
-                        queue<int> EmittedType ;
-                        queue<double> normEmittedNormal_X_dir ;                         //--normalized velocity for emitted particle
-                        queue<double> normEmittedNormal_Y_dir ;                         //--normalized velocity for emitted particle
-                        queue<double> normEmittedNormal_Z_dir ;                         //--normalized velocity for emitted particle
-                        queue<double> dPos_X_dir_EmittedParticle ;                           //--dPos for emitted particle
-                        queue<double> dPos_Y_dir_EmittedParticle ;                           //--dPos for emitted particle
-                        queue<double> dPos_Z_dir_EmittedParticle ;                           //--dPos for emitted particle
-                        queue<int> iPos_X_dir_EmittedParticle;                              //--iPos for emitted particle
-                        queue<int> iPos_Y_dir_EmittedParticle;                              //--iPos for emitted particle
-                        queue<int> iPos_Z_dir_EmittedParticle;                              //--iPos for emitted particle
-                        EmittedType = queue<int>();
-                        double normEmittedNormal [3];
-                        normEmittedNormal_X_dir = queue<double>();
-                        normEmittedNormal_Y_dir = queue<double>();
-                        normEmittedNormal_Z_dir = queue<double>();
-                        dPos_X_dir_EmittedParticle = queue<double>();
-                        dPos_Y_dir_EmittedParticle = queue<double>();
-                        dPos_Z_dir_EmittedParticle = queue<double>();
-                        iPos_X_dir_EmittedParticle = queue<int>();
-                        iPos_Y_dir_EmittedParticle = queue<int>();
-                        iPos_Z_dir_EmittedParticle = queue<int>();
-                        double accerlation [3];
-
-                        //--Count total number of particle and write to a file in a vtk format
-                        #pragma omp critical
-                        {
-                                particleNumber++;
-                        }
-                        /*
-                        cout << "indexParticle = " << indexParticle << endl;
-                        cout << "particle type = " << P1.ParticleType << endl;
-                */
-
-                if (P1.ParticleType == 0){
-                        continue;
-                }else if ( P1.ParticleType == iClRadicalType ){
-                        P1.mass = MassChlorine;
-                        P1.speed = P1.setInitialSpeed( Temperature,   MassChlorine,   SpeedcutoffThermalParicle[iClRadicalType]  );
-                        P1.energy = 0.5 * P1.mass * P1.speed * P1.speed; //--unit: Joule
-                        P1.theta = unif(generator)*PI/2+PI/2;  //--randomly generate a value between PI/2 to PI for the polar angle
-                        if ( NEUTRAL_THETA_SCALING == true){
-
-                                P1.theta = (P1.theta-PI)*NeutralThetaScalingFactor+PI;  //--unit: radian
-                        }
-                }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
-                        rdd1 = unif(generator);
-                        rdd2 = unif(generator);
-                        rdd3 = unif(generator);
-                        if ( P1.ParticleType == iClIonType){
-                                P1.mass = MassChlorine;
-                                for(int i = 0;    i < cumulativeflux_ClIon.size()-1;     i++){
-                                        if  (  rdd1 >= cumulativeflux_ClIon[i] && rdd1 < cumulativeflux_ClIon[i+1]  ){  //--read cumulative flux data for Cl ion
-                                                P1.theta =(    IonAngle[i] + rdd2*(  IonAngle[i+1] - IonAngle[i]  )    )*PI/180+PI;  //--unit: radian
-                                                P1.energy = (    IonEnergy[i] + rdd3*(  IonEnergy[i+1] - IonEnergy[i]  )    )/Joule_to_eV;  //--unit: Joule
-                                                break;
-                                        }
-                                }
-                        }else if ( P1.ParticleType == iCl2IonType){
-                                P1.mass = MassChlorine*2;
-                                for(int i = 0;    i < cumulativeflux_Cl2Ion.size()-1;     i++){
-                                        if  (  rdd1 >= cumulativeflux_Cl2Ion[i] && rdd1 < cumulativeflux_Cl2Ion[i+1]  ){  //--read cumulative flux data for Cl2 ion
-                                                P1.theta =(    IonAngle[i] + rdd2*(  IonAngle[i+1] - IonAngle[i]  )    )*PI/180+PI;  //--unit: radian
-                                                P1.energy = (    IonEnergy[i] + rdd3*(  IonEnergy[i+1] - IonEnergy[i]  )    )/Joule_to_eV;  //--unit: Joule
-                                                break;
-                                        }
-                                }
-                        }else if (  P1.ParticleType == iArIonType){
-                                P1.mass = MassArgon;
-                                for(int i = 0;    i < cumulativeflux_ArIon.size()-1;     i++){  //--read cumulative flux data for Ar ion
-                                        if  (  rdd1 >= cumulativeflux_ArIon[i] && rdd1 < cumulativeflux_ArIon[i+1]  ){
-                                                P1.theta =(    IonAngle[i] + rdd2*(  IonAngle[i+1] - IonAngle[i])    )*PI/180+PI;  //--unit: radian
-                                                P1.energy = (    IonEnergy[i] + rdd3*(  IonEnergy[i+1] - IonEnergy[i]  )    )/Joule_to_eV;  //--unit: Joule
-                                                break;
-                                        }
-                                }
-                        }
-                        if ( ION_THETA_SCALING == true){
-                                P1.theta = (P1.theta-PI)*IonThetaScalingFactor+PI; //--unit: radian
-                        }
-                        //cout << "P1.theta of ion = " << P1.theta << endl;
-                        //cin.get();
-                        P1.speed = sqrt(2*P1.energy/P1.mass);
+                int* ParticleType = new int [TotalParticleInAFile];
+                double* mass = new double [TotalParticleInAFile];
+                double** Vel = new double* [TotalParticleInAFile];
+                double* energy = new double [TotalParticleInAFile];
+                double** dPos = new double* [TotalParticleInAFile];
+                for(int i =0; i<TotalParticleInAFile; i++){
+                        dPos[i] = new double [3];
+                        Vel[i] = new double [3];
                 }
 
 
-                P1.phi = unif(generator)*2*PI; //--unit: radian
-                P1.setInitialPosition(Lx, Ly, Lz, dx, dy, dz);
-                P1.PropagationTimeInterval = dx/P1.speed;
-                P1.Vel[X_dir] = P1.speed*sin(P1.theta)*cos(P1.phi);
-                P1.Vel[Y_dir] = P1.speed*sin(P1.theta)*sin(P1.phi);
-                P1.Vel[Z_dir] = P1.speed*cos(P1.theta);
+                Generation(TotalParticleInAFile, Temperature, dx, dy, dz, Lx, Ly, Lz, CumuProbIncidentParticle,
+                                          cumulativeflux_ClIon, cumulativeflux_Cl2Ion, cumulativeflux_ArIon,
+                                          IonEnergy, IonAngle,
+                                          NEUTRAL_THETA_SCALING, ION_THETA_SCALING,
+                                          NeutralThetaScalingFactor, IonThetaScalingFactor,
+                                          ParticleType, mass, Vel, energy, dPos);
 
 
-                for(int indexTimeStep = 0; indexTimeStep < PropagationTimestepNumber; indexTimeStep++){
-
-                        //cout << "indexTimeStep = " << indexTimeStep << endl;
-                        //cout << "particle type = " << P1.ParticleType << endl;
-
-                        //--check if particle has been deactivated
-                        if(P1.ParticleType == 0){
-
-                                if (EmittedType.empty()){
-                                        break;
-                                }else{
-
-                                        if (  EmittedType.front() == iSiClgType){
-                                                P1.mass = MassSilicon+MassChlorine;
-                                        }else if ( EmittedType.front() == iSiCl2gType){
-                                                P1.mass = MassSilicon+2*MassChlorine;
-                                        }else if ( EmittedType.front() == iSiCl3gType){
-                                                P1.mass = MassSilicon+3*MassChlorine;
-                                        }else{
-                                                EmittedType.pop();
-                                                dPos_X_dir_EmittedParticle.pop();
-                                                dPos_Y_dir_EmittedParticle.pop();
-                                                dPos_Z_dir_EmittedParticle.pop();
-                                                iPos_X_dir_EmittedParticle.pop();
-                                                iPos_Y_dir_EmittedParticle.pop();
-                                                iPos_Z_dir_EmittedParticle.pop();
-                                                normEmittedNormal_X_dir.pop();
-                                                normEmittedNormal_Y_dir.pop();
-                                                normEmittedNormal_Z_dir.pop();
-                                                P1.ParticleType = 0;
-                                                continue;
-                                        }
-                                        P1.ParticleType = EmittedType.front();
-                                        P1.dPos[X_dir] = dPos_X_dir_EmittedParticle.front();
-                                        P1.dPos[Y_dir] = dPos_Y_dir_EmittedParticle.front();
-                                        P1.dPos[Z_dir] = dPos_Z_dir_EmittedParticle.front();
-                                        P1.iPos[X_dir] = iPos_X_dir_EmittedParticle.front();
-                                        P1.iPos[Y_dir] = iPos_Y_dir_EmittedParticle.front();
-                                        P1.iPos[Z_dir] = iPos_Z_dir_EmittedParticle.front();
-                                        normEmittedNormal[X_dir] = normEmittedNormal_X_dir.front();
-                                        normEmittedNormal[Y_dir] = normEmittedNormal_Y_dir.front();
-                                        normEmittedNormal[Z_dir] = normEmittedNormal_Z_dir.front();
-
-                                        P1.speed = P1.setInitialSpeed( Temperature,   P1.mass,   SpeedcutoffThermalParicle[P1.ParticleType]  );
-                                        P1.energy = 0.5*P1.mass*P1.speed*P1.speed;
-                                        P1.theta = P1.setReemittedTheta(ReemissionCosineLawPower); //--theta is with respect to surface normal
-                                        P1.phi = unif(generator)*2*PI;
-                                        //--modify particle reflected velocity by new speed, theta, and phi
-                                        P1.ReemittedWithNewDirection(normEmittedNormal, P1.speed, P1.theta, P1.phi) ;
-                                        P1.PropagationTimeInterval = dx/P1.speed;
-
-                                        EmittedType.pop();
-                                        dPos_X_dir_EmittedParticle.pop();
-                                        dPos_Y_dir_EmittedParticle.pop();
-                                        dPos_Z_dir_EmittedParticle.pop();
-                                        iPos_X_dir_EmittedParticle.pop();
-                                        iPos_Y_dir_EmittedParticle.pop();
-                                        iPos_Z_dir_EmittedParticle.pop();
-                                        normEmittedNormal_X_dir.pop();
-                                        normEmittedNormal_Y_dir.pop();
-                                        normEmittedNormal_Z_dir.pop();
-
-                                }
-                        }
-
-
-                        //--Give old_iPos and old_dPos values
-                        old_iPos[X_dir] = P1.iPos[X_dir];
-                        old_iPos[Y_dir] = P1.iPos[Y_dir];
-                        old_iPos[Z_dir] = P1.iPos[Z_dir];
-                        old_dPos[X_dir] = P1.dPos[X_dir] ;
-                        old_dPos[Y_dir] = P1.dPos[Y_dir] ;
-                        old_dPos[Z_dir] = P1.dPos[Z_dir] ;
-                        old_itag = old_iPos[X_dir] + ( old_iPos[Y_dir] + old_iPos[Z_dir]*C1.iDimSize[Y_dir] )*C1.iDimSize[X_dir];
-
-
-                        //--propagation
-                        if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){
-                                //cout << "particle type" << P1.ParticleType << endl;
-                                accerlation[X_dir] = C1.ElectricForce[old_itag][X_dir] / P1.mass;
-                                accerlation[Y_dir] = C1.ElectricForce[old_itag][Y_dir] / P1.mass;
-                                accerlation[Z_dir] = C1.ElectricForce[old_itag][Z_dir] / P1.mass;
-                                //cout << "accerlation[X_dir]  " << accerlation[X_dir]<< endl;
-                                //cin.get();
-                        }else{
-                                accerlation[X_dir] = 0;
-                                accerlation[Y_dir] = 0;
-                                accerlation[Z_dir] = 0;
-                        }
-
-                        P1.Vel[X_dir]       -= accerlation[X_dir] * P1.PropagationTimeInterval;
-                        P1.Vel[Y_dir]       -= accerlation[Y_dir] * P1.PropagationTimeInterval;
-                        P1.Vel[Z_dir]       -= accerlation[Z_dir] * P1.PropagationTimeInterval;
-
-                        P1.dPos[X_dir]   += P1.Vel[X_dir]*P1.PropagationTimeInterval-0.5*accerlation[X_dir]*pow(P1.PropagationTimeInterval, 2);
-                        P1.dPos[Y_dir]   += P1.Vel[Y_dir]*P1.PropagationTimeInterval-0.5*accerlation[Y_dir]*pow(P1.PropagationTimeInterval, 2);
-                        P1.dPos[Z_dir]   += P1.Vel[Z_dir]*P1.PropagationTimeInterval-0.5*accerlation[Z_dir]*pow(P1.PropagationTimeInterval, 2);
-
-                        P1.iPos[X_dir]     = floor(P1.dPos[X_dir]/dx);
-                        P1.iPos[Y_dir]     = floor(P1.dPos[Y_dir]/dy);
-                        P1.iPos[Z_dir]     = floor(P1.dPos[Z_dir]/dz);
-                       //cin.get();
-                        //--boundary condition
-                        if (BoundaryCondition == "reflective"){
-                                if(  P1.iPos[X_dir] <  0 ){
-                                        P1.dPos[X_dir] = P1.dPos[X_dir]*(-1);
-                                        P1.iPos[X_dir] = floor(P1.dPos[X_dir]/dx);
-                                        P1.Vel[X_dir] = P1.Vel[X_dir]*(-1);
-                                }else if( P1.iPos[X_dir] >= Nx ){
-                                        P1.dPos[X_dir] = 2*Lx - P1.dPos[X_dir];
-                                        P1.iPos[X_dir] = floor(P1.dPos[X_dir]/dx);
-                                        P1.Vel[X_dir] = P1.Vel[X_dir]*(-1);
-                                }
-                                if( P1.iPos[Y_dir] < 0 ){
-                                        P1.dPos[Y_dir] = P1.dPos[Y_dir]*(-1);
-                                        P1.iPos[Y_dir] = floor(P1.dPos[Y_dir]/dy);
-                                        P1.Vel[Y_dir] = P1.Vel[Y_dir]*(-1);
-                                }else if( P1.iPos[Y_dir] >= Ny ){
-                                        P1.dPos[Y_dir] = 2*Ly - P1.dPos[Y_dir];
-                                        P1.iPos[Y_dir] = floor(P1.dPos[Y_dir]/dy);
-                                        P1.Vel[Y_dir] = P1.Vel[Y_dir]*(-1);
-                                }
-                        }else if (BoundaryCondition == "periodic"){
-                                if(P1.iPos[X_dir] < 0){
-                                        P1.dPos[X_dir] += Lx;
-                                        P1.iPos[X_dir] += Nx;
-                                }else if(P1.iPos[X_dir] >= Nx){
-                                        P1.dPos[X_dir] -= Lx;
-                                        P1.iPos[X_dir] -= Nx;
-                                }
-                                if(P1.iPos[Y_dir] < 0){
-                                        P1.dPos[Y_dir] += Ly;
-                                        P1.iPos[Y_dir] += Ny;
-                                }else if(P1.iPos[Y_dir] >= Ny){
-                                        P1.dPos[Y_dir] -= Ly;
-                                        P1.iPos[Y_dir] -= Ny;
-                                }
-                        }else{
-                                if (  P1.iPos[X_dir] <  0 ||  P1.iPos[X_dir] >= Nx ){
-                                        P1.ParticleType = 0;
-                                        continue;
-                                }
-                                if (   P1.iPos[Y_dir] < 0 ||  P1.iPos[Y_dir] >= Ny ){
-                                        P1.ParticleType = 0;
-                                        continue;
-                                }
-                        }
-
-                        if(P1.iPos[Z_dir] < 0 || P1.iPos[Z_dir] >= Nz){
-                                P1.ParticleType = 0;
-                                continue;
-                        }else{
-                                itag =  P1.iPos[X_dir] + ( P1.iPos[Y_dir] + P1.iPos[Z_dir]*Ny )*Nx;
-                        }
-
-
-                        //--Calculate particle neighboring six points (particle size edge)
-                        for ( int i = 0; i < 6 ; i++){
-                                dPos_six_point[i][X_dir]   = P1.dPos[X_dir] + SixPointParticle[i][X_dir]*ParticleSizeX;
-                                dPos_six_point[i][Y_dir]   = P1.dPos[Y_dir] + SixPointParticle[i][Y_dir]*ParticleSizeY;
-                                dPos_six_point[i][Z_dir]   = P1.dPos[Z_dir] + SixPointParticle[i][Z_dir]*ParticleSizeZ;
-                                iPos_six_point[i][X_dir]     = floor(dPos_six_point[i][X_dir]/dx  );
-                                iPos_six_point[i][Y_dir]     = floor( dPos_six_point[i][Y_dir]/dy  );
-                                iPos_six_point[i][Z_dir]     = floor( dPos_six_point[i][Z_dir]/dz );
-
-
-                                if(iPos_six_point[i][X_dir] < 0){
-                                        dPos_six_point[i][X_dir] = dPos_six_point[i][X_dir] + C1.dDimLength[X_dir];
-                                        iPos_six_point[i][X_dir] = iPos_six_point[i][X_dir] + C1.iDimSize[X_dir];
-                                }else if(  iPos_six_point[i][X_dir] >= C1.iDimSize[X_dir]){
-                                        dPos_six_point[i][X_dir] = dPos_six_point[i][X_dir] - C1.dDimLength[X_dir];
-                                        iPos_six_point[i][X_dir] = iPos_six_point[i][X_dir] - C1.iDimSize[X_dir];
-                                }
-                                if( iPos_six_point[i][Y_dir] < 0){
-                                        dPos_six_point[i][Y_dir] = dPos_six_point[i][Y_dir] + C1.dDimLength[Y_dir];
-                                        iPos_six_point[i][Y_dir] = iPos_six_point[i][Y_dir] + C1.iDimSize[Y_dir];
-                                }else if( iPos_six_point[i][Y_dir] >= C1.iDimSize[Y_dir]){
-                                        dPos_six_point[i][Y_dir] = dPos_six_point[i][Y_dir] - C1.dDimLength[Y_dir];
-                                        iPos_six_point[i][Y_dir] = iPos_six_point[i][Y_dir] - C1.iDimSize[Y_dir];
-                                }
-                                if(iPos_six_point[i][Z_dir] < 0 || iPos_six_point[i][Z_dir] >= C1.iDimSize[Z_dir]){
-                                        P1.ParticleType = 0;
-                                        continue;
-                                }else{
-                                        itag_six_point[i] =  iPos_six_point[i][X_dir] + ( iPos_six_point[i][Y_dir] + iPos_six_point[i][Z_dir]*Ny )*Nx;
-                                }
-                        }
-
-
-                        //--count how many point for a seven-point molecule is on solid
-                        CountPointInSolid =0;
-                        for (int i = 0; i < 6 ; i++){
-                                if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
-                                        CountPointInSolid++;
-                                }
-                        }
-                        if (C1.iStatus[itag] == iSubstrateStat || C1.iStatus[itag] == iMaskStat ){
-                                CountPointInSolid++;
-                        }
+                Propagation(TotalParticleInAFile, Temperature, PropagationTimestepNumber, ReemissionCosineLawPower,
+                                            ParticleType, mass, dPos, energy, Vel,
+                                            dx, dy, dz, Nx, Ny, Nz, Lx, Ly, Lz,
+                                            SixPointParticle, ParticleSizeX, ParticleSizeY, ParticleSizeZ,
+                                            C1.iStatus, C1.iID_NBR, C1.dNumMaterial, C1.dNumSiClxs, C1.dNumSiClxg,
+                                            SurfaceSearchingIndex, SurfaceSearchingNumber);
 
 
 
-                        //--check if a particle collide on solid cell
-                        if (CountPointInSolid > 1){
-                                P1.dPos[X_dir] = old_dPos[X_dir];
-                                P1.dPos[Y_dir] = old_dPos[Y_dir];
-                                P1.dPos[Z_dir] = old_dPos[Z_dir];
-                                P1.PropagationTimeInterval = 0.5 * P1.PropagationTimeInterval;
-                        }else if ( CountPointInSolid == 1){
-                                for (int i = 0; i < 6 ; i++){
-                                        if (C1.iStatus[itag_six_point[i]] == iSubstrateStat || C1.iStatus[itag_six_point[i]] == iMaskStat){
-                                                old_itag = itag;
-                                                itag = itag_six_point[i];
-                                        }
-                                }
-                                C1.surface_normal(SurfaceSearchingIndex, SurfaceSearchingNumber , itag, P1.iPos, P1.Vel, normSurfaceNormal,
-                                                                           normReflectedVelocity, &GrazingAngle, &IncidentAngle );
-                                /*
-                                double n_dot_vi;
-                                C1.CalculateSurfaceNormal(SurfaceSearchingIndex, SurfaceSearchingNumber, itag, P1.iPos, normSurfaceNormal );
-                                C1.CalculateReflectedVelocity(P1.Vel, normSurfaceNormal, normReflectedVelocity, &n_dot_vi);
-
-                                if ( acos(n_dot_vi)*180/PI  >  90 ){
-                                        IncidentAngle = 180 - acos(n_dot_vi)*180/PI;
-                                }else{
-                                        IncidentAngle = acos(n_dot_vi)*180/PI;
-                                }
-                                GrazingAngle =  90 - IncidentAngle;
-                                */
-                                /*
-                                if (P1.iPos[Z_dir] < 950 && P1.ParticleType == iClIonType){
-                                        cout << "particle position = " << P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
-                                        cout << "normSurfaceNormal = " << normSurfaceNormal[X_dir] << " " << normSurfaceNormal[Y_dir] << " " << normSurfaceNormal[Z_dir]<<endl;
-                                        cout << "normIncidentV = " << P1.Vel[X_dir]/P1.speed << " " << P1.Vel[Y_dir]/P1.speed << " " << P1.Vel[Z_dir]/P1.speed << endl;
-                                        cout << "normReflectedV = " << normReflectedVelocity[X_dir] << " " << normReflectedVelocity[Y_dir] << " " << normReflectedVelocity[Z_dir]<<endl;
-                                        cout << "IncidentAngle = " << IncidentAngle << endl;
-                                        cout << "GrazinAngel = " << GrazingAngle << endl;
-                                        cin>>n_dot_vi;
-                                }
-                                */
 
 
-                                if (C1.iStatus[itag] == iMaskStat){
-
-                                        if (P1.ParticleType == iClRadicalType){
-                                                P1.Vel[X_dir] = P1.speed*normReflectedVelocity[X_dir];
-                                                P1.Vel[Y_dir] = P1.speed*normReflectedVelocity[Y_dir];
-                                                P1.Vel[Z_dir] = P1.speed*normReflectedVelocity[Z_dir];
-                                        }
-
-
-                                        if (P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType ){
-                                                break; //--for test
-                                                C1.IonMaskReaction(PhysSputterProb, itag, P1.energy*Joule_to_eV, IncidentAngle, &ReactionExecution  );
-                                                //--modify particle energy, speed, and reflected velocity
-                                                P1.ReflectedWithNewEnergy(normReflectedVelocity, &GrazingAngle, &epsilon_0, &epsilon_s, &theta_0, &gamma_0);
-                                        }
-
-
-                                        if (P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType ){
-                                                break; //--for test
-                                        }
-
-
-                                        if ( P1.speed == 0){
-                                                P1.ParticleType = 0;
-                                        }else{
-                                                P1.PropagationTimeInterval = dx/P1.speed;
-                                        }
-                                        continue;
-
-
-                                }else if ( C1.iStatus[itag] == iSubstrateStat ){
-
-                                        if( P1.ParticleType == iClRadicalType ){
-                                                C1.ClRadicalReaction(p0_ClRadicalReaction, itag, iNumMaterial, &ReactionExecution, &ReactionIndex);
-
-                                                if (ReactionExecution == 0){
-                                                        P1.speed = P1.setInitialSpeed( Temperature,   P1.mass,   SpeedcutoffThermalParicle[P1.ParticleType]  );
-                                                        P1.energy = 0.5*P1.mass*P1.speed*P1.speed;
-                                                        P1.theta = P1.setReemittedTheta(ReemissionCosineLawPower); //--theta is with respect to surface normal
-                                                        P1.phi = unif(generator)*2*PI;
-                                                        //--modify particle reflected velocity by new speed, theta, and phi
-                                                        P1.ReemittedWithNewDirection(normSurfaceNormal, P1.speed, P1.theta, P1.phi) ;
-                                                        P1.PropagationTimeInterval = dx/P1.speed;
-                                                        continue;
-                                                }else if (ReactionExecution == 1){
-                                                        P1.ParticleType = 0;
-                                                        continue;
-                                                }
-
-                                        }else if ( P1.ParticleType == iClIonType || P1.ParticleType == iCl2IonType || P1.ParticleType == iArIonType){
-
-                                                if (P1.ParticleType == iClIonType){
-
-                                                        C1.ClIonReaction(Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction, type_ClIonReaction,
-                                                                                               PhysSputterProb, ChemSputterProb, itag, iNumMaterial, P1.energy*Joule_to_eV, IncidentAngle,
-                                                                                               &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-
-                                                }else if (P1.ParticleType == iCl2IonType){
-
-                                                        C1.Cl2IonReaction(Eth_Cl2IonReaction, &E0_Cl2IonReaction, p0_Cl2IonReaction, type_Cl2IonReaction,
-                                                                                                  PhysSputterProb, ChemSputterProb, itag, iNumMaterial, P1.energy*Joule_to_eV, IncidentAngle,
-                                                                                                  &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-
-                                                }else if (P1.ParticleType == iArIonType){
-                                                        C1.ArIonReaction(Eth_ArIonReaction, &E0_ArIonReaction, p0_ArIonReaction, type_ArIonReaction,
-                                                                                               PhysSputterProb, ChemSputterProb, itag, iNumMaterial, P1.energy*Joule_to_eV, IncidentAngle,
-                                                                                               &ReactionExecution, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-
-                                                }
-
-                                                /*
-                                                if( GrazingAngle < 30){
-                                                        cout << "type = " << P1.ParticleType << endl;
-                                                        cout << "velocity = " << P1.Vel[X_dir] << " " << P1.Vel[Y_dir] << " " << P1.Vel[Z_dir] << endl;
-                                                        cout << "position = " << P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
-                                                        cout << "grazing angle = " << GrazingAngle << endl;
-                                                        cout << "normSurfaceNormal = "<< normSurfaceNormal[X_dir] << " " << normSurfaceNormal[Y_dir] << " " << normSurfaceNormal[Z_dir] << endl;
-                                                        cout << "normReflectedVelocity = "<< normReflectedVelocity[X_dir] << " " << normReflectedVelocity[Y_dir] << " " << normReflectedVelocity[Z_dir] << endl;
-                                                       cin.get();
-                                                }
-                                                */
-
-                                                if (ReactionExecution == 1 && EmittedParticle != 0){
-                                                        EmittedType.push(EmittedParticle);
-                                                        dPos_X_dir_EmittedParticle.push(P1.dPos[X_dir]);
-                                                        dPos_Y_dir_EmittedParticle.push(P1.dPos[Y_dir]);
-                                                        dPos_Z_dir_EmittedParticle.push(P1.dPos[Z_dir]);
-                                                        iPos_X_dir_EmittedParticle.push(P1.iPos[X_dir]);
-                                                        iPos_Y_dir_EmittedParticle.push(P1.iPos[Y_dir]);
-                                                        iPos_Z_dir_EmittedParticle.push(P1.iPos[Z_dir]);
-                                                        normEmittedNormal_X_dir.push(normSurfaceNormal[X_dir]);
-                                                        normEmittedNormal_Y_dir.push(normSurfaceNormal[Y_dir]);
-                                                        normEmittedNormal_Z_dir.push(normSurfaceNormal[Z_dir]);
-                                                }
-
-                                                P1.ParticleType = ReflectedParticle;
-                                                if (P1.ParticleType == 0){
-                                                        continue;
-                                                }else{
-                                                        /*
-                                                        if( GrazingAngle > 30){
-                                                                cout << "type = " << P1.ParticleType << endl;
-                                                                cout << "velocity = " << P1.Vel[X_dir] << " " << P1.Vel[Y_dir] << " " << P1.Vel[Z_dir] << endl;
-                                                                cout << "position = " << P1.iPos[X_dir] << " " << P1.iPos[Y_dir] << " " << P1.iPos[Z_dir] << endl;
-                                                                cout << "grazing angle = " << GrazingAngle << endl;
-                                                                cout << "speed = " << P1.speed << endl;
-                                                                cout << "normSurfaceNormal = "<< normSurfaceNormal[X_dir] << " " << normSurfaceNormal[Y_dir] << " " << normSurfaceNormal[Z_dir] << endl;
-                                                                cout << "normReflectedVelocity = "<< normReflectedVelocity[X_dir] << " " << normReflectedVelocity[Y_dir] << " " << normReflectedVelocity[Z_dir] << endl;
-
-                                                                if (P1.ParticleType == iClIonType){
-                                                                        P1.mass = MassChlorine;
-                                                                }else if (P1.ParticleType == iCl2IonType){
-                                                                        P1.mass = MassChlorine*2;
-                                                                }else if (P1.ParticleType == iArIonType){
-                                                                        P1.mass = MassArgon;
-                                                                }
-
-                                                                //--modify particle energy, speed, and reflected velocity
-                                                                P1.ReflectedWithNewEnergy(normReflectedVelocity, &GrazingAngle, &epsilon_0, &epsilon_s, &theta_0, &gamma_0);
-                                                                cout << "speed after = " << P1.speed << endl;
-                                                                cout << "velocity after = " << P1.Vel[X_dir] << " " << P1.Vel[Y_dir] << " " << P1.Vel[Z_dir] << endl;
-
-
-                                                                cin.get();
-                                                       }
-                                                       */
-
-                                                        if (P1.ParticleType == iClIonType){
-                                                                P1.mass = MassChlorine;
-                                                        }else if (P1.ParticleType == iCl2IonType){
-                                                                P1.mass = MassChlorine*2;
-                                                        }else if (P1.ParticleType == iArIonType){
-                                                                P1.mass = MassArgon;
-                                                        }
-
-                                                        //--modify particle energy, speed, and reflected velocity
-                                                        P1.ReflectedWithNewEnergy(normReflectedVelocity, &GrazingAngle, &epsilon_0, &epsilon_s, &theta_0, &gamma_0);
-
-                                                        if ( P1.speed == 0){
-                                                                P1.ParticleType = 0;
-                                                        }else{
-                                                                P1.PropagationTimeInterval = dx/P1.speed;
-                                                        }
-                                                        continue;
-                                                }
-
-                                        }else if ( P1.ParticleType == iSiClgType || P1.ParticleType == iSiCl2gType || P1.ParticleType == iSiCl3gType){
-
-                                                C1.redeposition(p0_redeposition, P1.ParticleType, old_itag, &ReactionExecution, &ReactionIndex);
-
-                                                if (ReactionExecution == 0){
-                                                        P1.speed = P1.setInitialSpeed( Temperature, P1.mass, SpeedcutoffThermalParicle[P1.ParticleType]  );
-                                                        P1.energy = 0.5*P1.mass*P1.speed*P1.speed;
-                                                        P1.theta = P1.setReemittedTheta(ReemissionCosineLawPower); //--theta is with respect to surface normal
-                                                        P1.phi = unif(generator)*2*PI;
-                                                        //--modify particle reflected velocity by new speed, theta, and phi
-                                                        P1.ReemittedWithNewDirection(normSurfaceNormal, P1.speed, P1.theta, P1.phi) ;
-                                                        P1.PropagationTimeInterval = dx/P1.speed;
-                                                        continue;
-                                                }else if (ReactionExecution == 1){
-                                                        P1.ParticleType = 0;
-                                                        continue;
-                                                }
-
-                                        }//--End of emittion particle ( if clause)
-                                }//--End of substrate (if clause)
-                        }//--End of count_point_on_solid (if clause)
-                }//--End of particle propagation loop (for loop)
-        }//--End of particle generation loop (for loop)
-
-        if (   indexOutputFile == TotalOutputFile  ){
-                PRINT_SI = true;
-                PRINT_SICl = true;
-                PRINT_SICl2 = true;
-                PRINT_SICl3 = true;
-        }
-        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
+                if (   indexOutputFile == TotalOutputFile  ){
+                        PRINT_SI = true;
+                        PRINT_SICl = true;
+                        PRINT_SICl2 = true;
+                        PRINT_SICl3 = true;
+                }
+                write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
                                     PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, indexOutputFile );
-
-
-}
+        }
         cout << "Total number of files generated : " << TotalOutputFile <<endl;
         cout << "Total Particle Number : " << particleNumber << endl;
-        /*
-        FileIndex++;
-        write_to_vtk(vtkDataType, Nx, Ny, Nz, dx, C1.iStatus, C1.dNumMaterial, C1.dNumMask, C1.dNumSiClxs, iNumMaterial,
-                                     PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, FileIndex );
-        */
-        /*
-        ofstream out1( directory+"number_of_reactions"   );
-         for (int i = 0; i < 26 ; i++){
-                out1 << reaction_number[i] << endl;
-        }
-        cout << "Reaction numbers are written to " << directory+"number_of_reactions" << endl;
-        ofstream out2(  directory + "number_of_particles"  );
-        for (int i = 0; i < 500 ; i++){
-                out2 << num_particle[i] << endl;
-        }
-        */
-
-        //cout << "Particle numbers are written to " << directory+"number_of_particles" << endl;
 }//--End of Program

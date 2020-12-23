@@ -2,8 +2,8 @@
 
 extern long  iRandTag;
 extern int RandomNumberCount;
-
 extern float ran2(long *);
+#pragma acc routine seq
 extern float ran3(long *);
 extern float ran4(long *);
 extern void ran3_ini(int);

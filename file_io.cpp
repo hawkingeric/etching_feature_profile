@@ -18,7 +18,7 @@ void write_to_vtk(std::string datatype, int cNx, int cNy, int cNz, double delta,
         int pNy = cNy + 1;
         int pNz = cNz + 1;
         int number_of_points = pNx * pNy * pNz;
-
+        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
         vtk << "# vtk DataFile Version 3.0" << endl;
         vtk << "Data : feature_profile\n";
         vtk << "ASCII" << endl;

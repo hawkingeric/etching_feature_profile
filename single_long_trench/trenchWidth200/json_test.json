@@ -30,7 +30,7 @@
     "PRINT_SICl":                   false,
     "PRINT_SICl2":                  false,
     "PRINT_SICl3":                  false,
-    "file_time_interval":           40,   "unit":"seconds"
+    "file_time_interval":           20,   "unit":"seconds"
   },
   
   "simulation_conditions":

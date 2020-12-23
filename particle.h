@@ -8,12 +8,9 @@ class particle
 {
         public:
                 void setInitialPosition(double, double, double, double, double, double);
+                void setInitialType(double*);
                 double setInitialSpeed(double, double, double);
-                double setInitialTheta_by_Gaussian(double);
-                double setReemittedTheta(double);
-                void setInitialType(std::vector<double>&);
-                void ReflectedWithNewEnergy(double*, double*, double*, double*, double*, double*);
-                void ReemittedWithNewDirection(double* , double, double, double);
+
                 double dPos [3];
                 double Vel [3];
                 int iPos [3];
