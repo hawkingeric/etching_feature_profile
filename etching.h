@@ -20,9 +20,9 @@ extern int iVacuumStat, iSubstrateStat, iMaskStat;
 extern double MassChlorine, MassArgon, MassSilicon, MassssElectron;
 extern int P_sputtering, C_sputtering;
 
-void write_to_vtk(std::string, int, int, int, double, int*, double*, double*, double**, int, bool, bool, bool, bool, std::string, std::string, int);
 std::vector<double> gauss(std::vector<std::vector<double>> A);
 std::vector<double> read_data(std::string);
+
 
 
 

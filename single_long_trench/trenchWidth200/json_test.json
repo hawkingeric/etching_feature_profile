@@ -9,8 +9,8 @@
     "domain_size_z":               1000,
     "substrate_thickness":         900,
     "mask_thickness":              50,
-    "trench_width":                200,
-    "mask_width":                  100,
+    "trench_width":                100,
+    "mask_width":                  200,
     "mask_length":                 400,
     "gap_width_x":                 200,
     "gap_width_y":                 100,
@@ -30,12 +30,12 @@
     "PRINT_SICl":                   false,
     "PRINT_SICl2":                  false,
     "PRINT_SICl3":                  false,
-    "file_time_interval":           0.1,   "unit":"seconds"
+    "file_time_interval":           10,   "unit":"seconds"
   },
   
   "simulation_conditions":
   {           
-    "total_real_time":              2,  "unit":"seconds",
+    "total_real_time":              200,  "unit":"seconds",
     "propagation_timestep_number":  1E4,
     "boundary_condition":           "periodic",    
     "Temperature":                  1000,

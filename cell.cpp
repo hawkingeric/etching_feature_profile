@@ -1,25 +1,20 @@
 #include "etching.h"
 #include "cell.h"
-#include "jacobi_eigenvalue.h"
 #include "rand.h"
 
 using namespace std;
 #pragma acc routine seq
 void cell::initial(int ix, int iy, int iz, double Lx, double Ly, double Lz)
 {
-        int X_dir = 0;
-        int Y_dir = 1;
-        int Z_dir = 2;
-
-        cell::iDimSize[0] = ix;
-        cell::iDimSize[1] = iy;
-        cell::iDimSize[2] = iz;
-        cell::dDimLength[0] = Lx;
-        cell::dDimLength[1] = Ly;
-        cell::dDimLength[2] = Lz;
-        cell::dDimLength_per_cell[0]= Lx/ix;
-        cell::dDimLength_per_cell[1] = Ly/iy;
-        cell::dDimLength_per_cell[2] = Lz/iz;
+        cell::iDimSize[X_dir] = ix;
+        cell::iDimSize[Y_dir] = iy;
+        cell::iDimSize[Z_dir] = iz;
+        cell::dDimLength[X_dir] = Lx;
+        cell::dDimLength[Y_dir] = Ly;
+        cell::dDimLength[Z_dir] = Lz;
+        cell::dDimLength_per_cell[X_dir]= Lx/ix;
+        cell::dDimLength_per_cell[Y_dir] = Ly/iy;
+        cell::dDimLength_per_cell[Z_dir] = Lz/iz;
 
         int i;
         cell::iNumCell       = cell::iDimSize[X_dir] * cell::iDimSize[Y_dir] * cell::iDimSize[Z_dir]; // ix * iy * iz
@@ -134,288 +129,331 @@ void cell::setStatus(int iTagCell, int iST, int iNum)
                 cell::dNumMask[iTagCell]      = iNum;
                 cell::dNumIon[iTagCell]       = 0;
           }
-
-
         //ctor
 }
 
 
 
-//input: itag, iPos, incident_V; output: norm_surface_N, norm_reflected_V, grazing_angle, incident_angle
-#pragma acc routine seq
-void cell::CalcSurfaceNormal(int searching_index [][3], int searching_number, int itag, int* iPos, double* incident_V,
-                                              double* norm_surface_N, double* norm_reflected_V,
-                                              double* grazing_angle, double* incident_angle ){
+void cell::write_to_vtk(std::string datatype, int cNx, int cNy, int cNz, double delta, int* iStatus, double* dNumMaterial, double* dNumMask,
+                                       double** dNumSiClxs, int iNumMaterial, bool PrintSi, bool PrintSiCl, bool PrintSiCl2, bool PrintSiCl3,
+                                       std::string directory, std::string append, int file_index ){
+
+        string Filename;
+        string file_index_name = to_string(file_index);
+        //cout<<file_index_name;
+        Filename = directory+file_index_name+append;
+        ofstream vtk(Filename);
+        int number_of_cells = cNx * cNy * cNz ;
+        int pNx = cNx + 1;
+        int pNy = cNy + 1;
+        int pNz = cNz + 1;
+        int number_of_points = pNx * pNy * pNz;
         int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
-        double Surfacesites [searching_number][3];
-        int NN_x, NN_y, NN_z, itagNeighbor;
-        int NN_x_for_cal_itag, NN_y_for_cal_itag, NN_z_for_cal_itag;
-        int X_dir = 0, Y_dir = 1, Z_dir = 2;
-        int indexSurfacesites = 0;
-        //--determine surface sites
-        for (int i = 0; i < searching_number; i++){
-                NN_x = iPos[X_dir] + searching_index[i][0];
-                NN_y = iPos[Y_dir] + searching_index[i][1];
-                NN_z = iPos[Z_dir] + searching_index[i][2];
-                NN_x_for_cal_itag = NN_x;
-                NN_y_for_cal_itag = NN_y;
-                NN_z_for_cal_itag = NN_z;
+        vtk << "# vtk DataFile Version 3.0" << endl;
+        vtk << "Data : feature_profile\n";
+        vtk << "ASCII" << endl;
 
-                //--periodic boundary condition
-                while (NN_x_for_cal_itag >= cell::iDimSize[X_dir] )  NN_x_for_cal_itag -= cell::iDimSize[X_dir];
-                while (NN_y_for_cal_itag >= cell::iDimSize[Y_dir] )  NN_y_for_cal_itag -= cell::iDimSize[Y_dir];
-                while (NN_z_for_cal_itag >= cell::iDimSize[Z_dir] )  NN_z_for_cal_itag -= cell::iDimSize[Z_dir];
-                while (NN_x_for_cal_itag < 0                )                                NN_x_for_cal_itag += cell::iDimSize[X_dir];
-                while (NN_y_for_cal_itag < 0                )                                NN_y_for_cal_itag += cell::iDimSize[Y_dir];
-                while (NN_z_for_cal_itag < 0                )                                NN_z_for_cal_itag += cell::iDimSize[Z_dir];
+        //--Written in an UNSTRUCTURED_GRID
+        if ( datatype == "UNSTRUCTURED_GRID" ) {
 
-                //--calculated itag of Neighboring cell
-                itagNeighbor = NN_x_for_cal_itag + ( NN_y_for_cal_itag + NN_z_for_cal_itag * cell::iDimSize[Y_dir])*cell::iDimSize[X_dir];
+                vtk << "DATASET UNSTRUCTURED_GRID" << endl;
+                vtk << "POINTS  " << number_of_points << "  float" << endl;
+                //--Generate grid points coordinates
+                for(int z = 0; z < pNz; z++){
+                        for(int y = 0; y < pNy; y++){
+                                for(int x = 0; x < pNx; x++){
+                                        vtk << x * delta << "\t" << y * delta << "\t" << z * delta <<endl;
+                                }
+                       }
+                }
 
+                vtk << endl;
+                vtk << "CELLS" << "\t" << number_of_cells << "\t" << 9*number_of_cells << endl;  //-- Each cell is determined by 9 values
 
-                //--check if the cell property of center cell and neighboring cell same
-                if ( cell::iStatus[itagNeighbor] == iSubstrateStat || cell::iStatus[itagNeighbor] == iMaskStat){
-                        //--check six faces of neighboring cells are exposed to vacuum
-                        if (  cell::iStatus[iID_NBR[itagNeighbor][4]] == iVacuumStat || cell::iStatus[iID_NBR[itagNeighbor][12]] == iVacuumStat ||
-                                cell::iStatus[iID_NBR[itagNeighbor][10]] == iVacuumStat || cell::iStatus[iID_NBR[itagNeighbor][14]] == iVacuumStat ||
-                                cell::iStatus[iID_NBR[itagNeighbor][16]] == iVacuumStat || cell::iStatus[iID_NBR[itagNeighbor][22]] == iVacuumStat){
-                                Surfacesites[indexSurfacesites][0] = double(NN_x);
-                                Surfacesites[indexSurfacesites][1] = double(NN_y);
-                                Surfacesites[indexSurfacesites][2] = double(NN_z);
-                                indexSurfacesites++;
+                int index;
+                for(int z = 0; z < cNz; z++){
+                        for(int y = 0; y < cNy; y++){
+                                for(int x = 0; x < cNx; x++){
+                                        index = x + ( y + z * pNy) * pNx;
+
+                                        vtk << "8" << "\t" << index                                             << "\t" << index + 1
+                                                               << "\t" << (index + pNx)                            << "\t" << (index + pNx + 1)
+                                                               << "\t" << (index + pNx * pNy)               << "\t" << (index + pNx * pNy + 1)
+                                                               << "\t" << (index + pNx * pNy + pNx) << "\t" << (index + pNx * pNy + pNx + 1) << endl;
+                                }
                         }
-                }
+                 }
+
+                 vtk << endl;
+                 vtk << "CELL_TYPES" << "    " << number_of_cells <<endl;
+
+                 for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << "11" << "\t";
+                                }
+                        }
+                 }
+
+                 vtk << endl;
+                 vtk << "CELL_DATA" <<  "    " << number_of_cells <<endl;
+
+                 vtk << endl;
+
+                vtk << "SCALARS dNumMaterial float 1" << endl;
+                 vtk << "LOOKUP_TABLE default" << endl;
+                for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << dNumMaterial[ x + ( y + z * cNy ) * cNx ] << endl;
+                                 }
+                         }
+                 }
+
+                 vtk << "SCALARS dNumMask float 1" << endl;
+                 vtk << "LOOKUP_TABLE default" << endl;
+                for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << dNumMask[ x + ( y + z * cNy ) * cNx ] << endl;
+                                 }
+                         }
+                 }
+
+                 vtk << "SCALARS iStatus float 1" << endl;
+                 vtk << "LOOKUP_TABLE default" << endl;
+                 for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << iStatus[ x + ( y + z * cNy ) * cNx ] << endl;
+                                 }
+                         }
+                 }
+
+                if ( PrintSi ){
+                        vtk << "SCALARS dNumSis float 1" << endl;
+                        vtk << "LOOKUP_TABLE default" << endl;
+                        for(int z = 0; z < cNz; z++){
+                                for(int y = 0; y < cNy; y++){
+                                        for(int x = 0; x < cNx; x++){
+                                                int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][0]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+                 }
+
+                 if (PrintSiCl){
+                         vtk << "SCALARS dNumSiCls float 1" << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                for(int y = 0; y < cNy; y++){
+                                        for(int x = 0; x < cNx; x++){
+                                                int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][1]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+                 }
+
+                if ( PrintSiCl2){
+                         vtk << "SCALARS dNumSiCl2s float 1" << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                for(int y = 0; y < cNy; y++){
+                                        for(int x = 0; x < cNx; x++){
+                                                int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][2]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+               }
+
+               if ( PrintSiCl3){
+                         vtk << "SCALARS dNumSiCl3s float 1" << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                for(int y = 0; y < cNy; y++){
+                                        for(int x = 0; x < cNx; x++){
+                                                int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][3]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+               }
+
+                 vtk.close();
+                 cout<<"The result is written to "<<Filename<<endl;
         }
 
+        //--Written in a STRUCTURED_POINTS
+        else if ( datatype == "STRUCTURED_POINTS" ){
 
 
+                 vtk << "DATASET STRUCTURED_POINTS" << endl;
+                 vtk << "DIMENSIONS  " << cNx << "  " << cNy << "  " << cNz<<endl;
+                 vtk << "ORIGIN " <<"0  0  0" <<endl;
+                 vtk << "SPACING " << delta << "  " << delta << "  " << delta <<endl;
+                 vtk << "POINT_DATA" <<  "    " << number_of_cells <<endl;
 
-        //cin.get();
-        double xbar, ybar, zbar, xsum, ysum, zsum, numSites, A11, A12, A13, A21, A22, A23, A31, A32, A33;
-        xbar = 0; ybar = 0; zbar = 0; xsum = 0; ysum = 0; zsum = 0; numSites = 0;
-        A11 = 0; A12 = 0; A13 = 0; A21 = 0; A22 = 0; A23 = 0; A31 = 0; A32 = 0; A33 = 0;
+                 vtk << endl;
 
-        for(int i =0; i< indexSurfacesites; i++){
-                xsum = xsum + Surfacesites[i][X_dir]*Surfacesites[i][3];
-                ysum = ysum + Surfacesites[i][Y_dir]*Surfacesites[i][3];
-                zsum = zsum + Surfacesites[i][Z_dir]*Surfacesites[i][3];
-                numSites++;
+                 vtk << "SCALARS dNumMaterial float 1" << endl;
+                 vtk << "LOOKUP_TABLE default" << endl;
+                  for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << dNumMaterial[ x + ( y + z * cNy ) * cNx ] << endl;
+                                 }
+                         }
+                 }
+
+
+                 vtk << "SCALARS iStatus float 1" << endl;
+                 vtk << "LOOKUP_TABLE default" << endl;
+                 for(int z = 0; z < cNz; z++){
+                         for(int y = 0; y < cNy; y++){
+                                 for(int x = 0; x < cNx; x++){
+                                         vtk << iStatus[ x + ( y + z * cNy ) * cNx ] << endl;
+                                 }
+                         }
+                 }
+
+                 if ( PrintSi){
+                         vtk << "SCALARS dNumSis float 1" << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                 for(int y = 0; y < cNy; y++){
+                                         for(int x = 0; x < cNx; x++){
+                                                 int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][0]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+                 }
+
+                 if ( PrintSiCl){
+                         vtk << "SCALARS dNumSiCls float 1" << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                 for(int y = 0; y < cNy; y++){
+                                         for(int x = 0; x < cNx; x++){
+                                                 int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][1]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+                 }
+
+                 if ( PrintSiCl2){
+                         vtk << "SCALARS dNumSiCl2s float 1" << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                 for(int y = 0; y < cNy; y++){
+                                         for(int x = 0; x < cNx; x++){
+                                                 int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                        vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][2]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+                 }
+
+                 if ( PrintSiCl3){
+                         vtk << "SCALARS dNumSiCl3s float 1"  << endl;
+                         vtk << "LOOKUP_TABLE default" << endl;
+                         for(int z = 0; z < cNz; z++){
+                                 for(int y = 0; y < cNy; y++){
+                                         for(int x = 0; x < cNx; x++){
+                                                 int status = iStatus[ x + ( y + z * cNy ) * cNx ];
+                                                 if ( status == iVacuumStat  ){
+                                                         vtk << iVacuumStat << endl;
+                                                 }else if (  status == iMaskStat){
+                                                         vtk << iMaskStat << endl;
+                                                 }
+                                                 else if ( status == iSubstrateStat ){
+                                                         vtk << dNumSiClxs[ x + ( y + z * cNy ) * cNx ][3]/iNumMaterial << endl;
+                                                 }
+                                         }
+                                 }
+                         }
+                 }
+
+                 vtk.close();
+                 cout<<"The result is written to "<<Filename<<endl;
         }
-
-        xbar = xsum/numSites;
-        ybar = ysum/numSites;
-        zbar = zsum/numSites;
-
-        //--calculated surface normal
-        for(int i =0; i< indexSurfacesites; i++){
-                A11 = A11 + (Surfacesites[i][X_dir] - xbar)*(Surfacesites[i][X_dir] - xbar)*Surfacesites[i][3];
-                A22 = A22 + (Surfacesites[i][Y_dir] - ybar)*(Surfacesites[i][Y_dir] - ybar)*Surfacesites[i][3];
-                A33 = A33 + (Surfacesites[i][Z_dir] - zbar)*(Surfacesites[i][Z_dir] - zbar)*Surfacesites[i][3];
-                A12 = A12 + (Surfacesites[i][X_dir] - xbar)*(Surfacesites[i][Y_dir] - ybar)*Surfacesites[i][3];
-                A13 = A13 + (Surfacesites[i][X_dir] - xbar)*(Surfacesites[i][Z_dir] - zbar)*Surfacesites[i][3];
-                A23 = A23 + (Surfacesites[i][Y_dir] - ybar)*(Surfacesites[i][Z_dir] - zbar)*Surfacesites[i][3];
-        }
-
-        A21 = A12;
-        A31 = A13;
-        A32 = A23;
-
-        double detA = A11*A22*A33+A12*A23*A31+A13*A21*A32-A31*A22*A13-A23*A32*A11-A12*A21*A33;
-        int ranknumber = 3;
-        double A [9] = {A11, A12, A13, A21, A22, A23, A31, A32, A33};  //--matrix
-        double D [3]; //--eigenvalue
-        double V [9];  //--eigenvector
-        int it_max = 500;
-        int it_num;
-        int rot_num;
-        jacobi_eigenvalue( ranknumber, A, it_max, V, D,  it_num,  rot_num );
-        int minVal_index = 0;
-        double minVal = fabs(D[0]);
-        for (int i = 0; i < 3; i++){
-                if( fabs(D[i]) < minVal){
-                        minVal = fabs(D[i]);
-                        minVal_index = i;
-                }
-        }
-        //--normalized surface normal vector
-        norm_surface_N[X_dir] = V[minVal_index*3+X_dir];
-        norm_surface_N[Y_dir] = V[minVal_index*3+Y_dir];
-        norm_surface_N[Z_dir] = V[minVal_index*3+Z_dir];
-
-        //--determine the direction of the surface normal
-        int poll_positive = 0;
-        int poll_negative = 0;
-        int poll_x, poll_y, poll_z, itag_poll;
-
-        //cout << "position = " << iPos[X_dir] << " " << iPos[Y_dir] << " " << iPos[Z_dir] << endl;
-
-        for (int i = 1; i <= 3 ; i++){
-                poll_x = floor(iPos[X_dir] + 2*i*norm_surface_N[X_dir]);
-                poll_y = floor(iPos[Y_dir] + 2*i*norm_surface_N[Y_dir]);
-                poll_z = floor(iPos[Z_dir] + 2*i*norm_surface_N[Z_dir]);
-                //--periodic boundary condition
-                while ( poll_x >= cell::iDimSize[X_dir] )  poll_x -= cell::iDimSize[X_dir];
-                while ( poll_y >= cell::iDimSize[Y_dir] )  poll_y -= cell::iDimSize[Y_dir];
-                while ( poll_z >= cell::iDimSize[Z_dir] )  poll_z -= cell::iDimSize[Z_dir];
-                while ( poll_x < 0       )   poll_x += cell::iDimSize[X_dir];
-                while ( poll_y < 0       )   poll_y += cell::iDimSize[Y_dir];
-                while ( poll_z < 0       )   poll_z += cell::iDimSize[Z_dir];
-                itag_poll = poll_x + (poll_y + poll_z* cell::iDimSize[Y_dir])*cell::iDimSize[X_dir];
-                if ( cell::iStatus[itag_poll] == iVacuumStat ){
-                        poll_positive++;
-                }
-        }
-
-        for (int i = 1; i <= 3 ; i++){
-                poll_x = floor(iPos[X_dir] - 2*i*norm_surface_N[X_dir]);
-                poll_y = floor(iPos[Y_dir] - 2*i*norm_surface_N[Y_dir]);
-                poll_z = floor(iPos[Z_dir] - 2*i*norm_surface_N[Z_dir]);
-                //--periodic boundary condition
-                while ( poll_x >= cell::iDimSize[X_dir] )  poll_x -= cell::iDimSize[X_dir];
-                while ( poll_y >= cell::iDimSize[Y_dir] )  poll_y -= cell::iDimSize[Y_dir];
-                while ( poll_z >= cell::iDimSize[Z_dir] )  poll_z -= cell::iDimSize[Z_dir];
-                while ( poll_x < 0       )   poll_x += cell::iDimSize[X_dir];
-                while ( poll_y < 0       )   poll_y += cell::iDimSize[Y_dir];
-                while ( poll_z < 0       )   poll_z += cell::iDimSize[Z_dir];
-                itag_poll = poll_x + (poll_y + poll_z*cell::iDimSize[Y_dir])*cell::iDimSize[X_dir];
-                if ( cell::iStatus[itag_poll] == iVacuumStat ){
-                        poll_negative++;
-                }
-        }
-
-
-        if (poll_positive > poll_negative){
-                 norm_surface_N[X_dir] = norm_surface_N[X_dir];
-                 norm_surface_N[Y_dir] = norm_surface_N[Y_dir];
-                 norm_surface_N[Z_dir] = norm_surface_N[Z_dir];
-        }else if (poll_positive < poll_negative){
-                 norm_surface_N[X_dir] = (-1)*norm_surface_N[X_dir];
-                 norm_surface_N[Y_dir] = (-1)*norm_surface_N[Y_dir];
-                 norm_surface_N[Z_dir] = (-1)*norm_surface_N[Z_dir];
-         }else if (poll_positive == poll_negative){
-                 /*
-                 random_device rd;
-                 default_random_engine generator( rd() );  //--random number generator
-                 uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
-                 */
-                 long iRandTag = 0;
-                 double rdd = ran3(&iRandTag);
-
-                 if( rdd < 0.5 ){
-                         norm_surface_N[X_dir] = norm_surface_N[X_dir];
-                         norm_surface_N[Y_dir] = norm_surface_N[Y_dir];
-                         norm_surface_N[Z_dir] = norm_surface_N[Z_dir];
-                 }else if ( 0.5 <= rdd && rdd < 1.0){
-                         norm_surface_N[X_dir] = (-1)*norm_surface_N[X_dir];
-                         norm_surface_N[Y_dir] = (-1)*norm_surface_N[Y_dir];
-                         norm_surface_N[Z_dir] = (-1)*norm_surface_N[Z_dir];
-                  }
-         }
-
-
-        //--calculate the normalized reflected velocity
-        double speed = sqrt( pow(incident_V[X_dir], 2.0) + pow(incident_V[Y_dir], 2.0) + pow(incident_V[Z_dir], 2.0)  );
-        double norm_incident_V [3];
-        double n_dot_vi;
-        if ( speed == 0 ){
-                norm_incident_V[X_dir] = 0.0;  //--x component of normalized incident velocity vector
-                norm_incident_V[Y_dir] = 0.0;  //--y component of normalized incident velocity vector
-                norm_incident_V[Z_dir] = 0.0;  //--z component of normalized incident velocity vector
-        }else{
-                norm_incident_V[X_dir] = incident_V[X_dir]/speed;  //--x component of normalized incident velocity vector
-                norm_incident_V[Y_dir] = incident_V[Y_dir]/speed;  //--y component of normalized incident velocity vector
-                norm_incident_V[Z_dir] = incident_V[Z_dir]/speed;  //--z component of normalized incident velocity vector
-        }
-
-        n_dot_vi = norm_surface_N[X_dir]*norm_incident_V[X_dir]
-                              +norm_surface_N[Y_dir]*norm_incident_V[Y_dir]
-                              +norm_surface_N[Z_dir]*norm_incident_V[Z_dir];
-
-        norm_reflected_V[X_dir] = norm_incident_V[X_dir] - 2*n_dot_vi*norm_surface_N[X_dir];
-        norm_reflected_V[Y_dir] = norm_incident_V[Y_dir] - 2*n_dot_vi*norm_surface_N[Y_dir];
-        norm_reflected_V[Z_dir] = norm_incident_V[Z_dir] - 2*n_dot_vi*norm_surface_N[Z_dir];
-        double angle_between_surface_normal_and_velocity = acos(n_dot_vi)*180/PI;
-
-        if ( angle_between_surface_normal_and_velocity  >  90 ){
-                 *incident_angle = 180 - angle_between_surface_normal_and_velocity;
-        }else{
-                *incident_angle = angle_between_surface_normal_and_velocity;
-        }
-        *grazing_angle =  90 - *incident_angle;
 
 }
 
 
-void cell::SurfaceReaction( int iCollisionTag, int iBeforeCollisionTag, double GrazingAngle, double IncidentAngle,
-                                                 int* ParticleType, double* mass, double energy)
 
-{
-        int X_dir = 0, Y_dir = 1, Z_dir = 2;
-        int iClRadicalType = 1, iSigType = 2, iSiClgType = 3, iSiCl2gType = 4, iSiCl3gType = 5;
-        int iClIonType = 7, iCl2IonType = 8, iArIonType = 9;
-        int iVacuumStat = 0, iSubstrateStat = 1, iMaskStat = 2;
-        double MassChlorine = 35.45*1.66053904E-27;  // unit: kg
-        double MassArgon = 39.948*1.66053904E-27;  // unit: kg
-        double MassSilicon = 28.0855*1.66053904E-27;  // unit: kg
-        double MassElectron = 9.10938356E-31; // unit: kg
-        int ReactionIndex;
-        int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
-        int ReflectedParticle= 0;                              //--index for original reflected particle such as Ar*, Cl*
+vector<double> read_data(string filename){
 
-        if ( cell::iStatus[iCollisionTag] == iMaskStat){
-                if (  *ParticleType == iClRadicalType ){
-                        *ParticleType = iClRadicalType;
-                }else if (  *ParticleType == iClIonType ){
-                        *ParticleType = iClIonType;
-                }else if (  *ParticleType == iCl2IonType ){
-                        *ParticleType = iCl2IonType;
-                }else if (   *ParticleType == iArIonType ){
-                        *ParticleType = iArIonType;
-                }else if (  *ParticleType == iSiClgType ){
-                        *ParticleType = iSiClgType;
-                }else if (  *ParticleType == iSiCl2gType ){
-                        *ParticleType = iSiCl2gType;
-                        *mass = MassSilicon+MassChlorine*2;
-                }else if (  *ParticleType == iSiCl3gType ){
-                        *ParticleType = iSiCl3gType;
-                        *mass = MassSilicon+MassChlorine*3;
+        vector<double> data_read;
+        string buffer_string_line;
+        string data;
+        ifstream in(filename);
+	    while (!in.eof())
+        {
+                getline(in, data);
+                istringstream delim_data_input(  data  );
+                if (  data.empty() )   continue;
+                while(delim_data_input>>buffer_string_line){
+                        data_read.push_back(stod(buffer_string_line));
                 }
-        }else if ( cell::iStatus[iCollisionTag] == iSubstrateStat ){
-
-                if( *ParticleType == iClRadicalType ){
-                        ClRadicalReaction(iCollisionTag, &ReflectedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iClIonType){
-                        ClIonReaction(iCollisionTag, energy*Joule_to_eV, IncidentAngle, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iCl2IonType){
-                        Cl2IonReaction(iCollisionTag, energy*Joule_to_eV, IncidentAngle, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iArIonType){
-                        ArIonReaction(iCollisionTag, energy*Joule_to_eV, IncidentAngle, &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iSiClgType){
-                        Redeposition(*ParticleType, iBeforeCollisionTag, &ReflectedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if (  *ParticleType == iSiCl2gType){
-                        Redeposition(*ParticleType, iBeforeCollisionTag, &ReflectedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }else if ( *ParticleType == iSiCl3gType){
-                        Redeposition(*ParticleType, iBeforeCollisionTag, &ReflectedParticle, &ReactionIndex);
-                        *ParticleType = ReflectedParticle;
-                }
-        }
-        if( *ParticleType == iClRadicalType){
-                *mass = MassChlorine;
-        }else if ( *ParticleType == iSiClgType){
-                *mass = MassSilicon+MassChlorine;
-        }else if ( *ParticleType == iSiCl2gType){
-                *mass = MassSilicon+2*MassChlorine;
-        }else if ( *ParticleType == iSiCl3gType){
-                *mass = MassSilicon+3*MassChlorine;
-        }else if (  *ParticleType == iClIonType){
-                *mass = MassChlorine;
-        }else if ( *ParticleType == iCl2IonType){
-                *mass = MassChlorine*2;
-        }
+	    }
+	    in.close();
+        return data_read;
 }
+
+
+
+
