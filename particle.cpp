@@ -8,7 +8,7 @@ using namespace std;
 
 
 
-void cell::Generation(double* Temperature, double* CumuProb,
+void cell::Generation(double* Temperature, double* CumuProb, double* v_cut,
                                     vector<double> cumulativeflux_ClIon, vector<double> cumulativeflux_Cl2Ion, vector<double> cumulativeflux_ArIon,
                                     vector<double> IonEnergy, vector<double> IonAngle,
                                     bool NEUTRAL_THETA_SCALING, bool ION_THETA_SCALING,
@@ -21,8 +21,8 @@ void cell::Generation(double* Temperature, double* CumuProb,
 
         if(*ParticleType == iClRadicalType){
                 double ThetaScalingFactor = 1;
-                cell::GenerateRadicalVelocitySpeed(Temperature, mass, Vel, speed);
-                cell::CalculateThetaFromVel(Vel, &theta);
+                cell::GenerateRadicalSpeed(Temperature, v_cut, mass, speed);
+                cell::GenerateTheta(&theta);
                 theta = (theta-PI)*ThetaScalingFactor+PI;  //--unit: radian
                 cell::GeneratePhi(&phi);
                 cell::CalculateVelFromThetaPhi(speed, &theta, &phi, Vel);
@@ -53,8 +53,8 @@ void cell::Generation(double* Temperature, double* CumuProb,
 
 
 
-void cell::Propagation(double* Temperature, double* ParticleSizeFactor, double* dPos, int* iPos, double* Vel, double* speed,
-                                                 int* ParticleInDomain, int* iCollisionTag, int* iPreviousCollisionTag )
+void cell::Propagation(double* Temperature, int* PropagationTimestepNumber, double* ParticleSizeFactor, double* dPos, int* iPos,
+                                               double* Vel, double* speed, int* ParticleInDomain, int* iCollisionTag, int* iPreviousCollisionTag )
 {
         int iPreviousTag;                                                                         //--Previous iTag of Particle Center
         double dPreviousPos [3];                                                       //--Previous dPos (x, y, z) of Particle Center
@@ -65,9 +65,10 @@ void cell::Propagation(double* Temperature, double* ParticleSizeFactor, double* 
         int iCurrentEdgePos [6][3];                                                   //--Current iPos (x, y, z) of Particle's neighboring six Edge points
         int CountPointInSolid = 0;                                                     //--to count how many point of a seven-point molecule is on solid cell
         double PropagationTimeInterval = cell::dDimLength_per_cell[X_dir]/(*speed);  //--Time Interval for propagation
-
+        //cout << "iPos =" << iPos[X_dir] << " " << iPos[Y_dir] << " " << iPos[Z_dir] << endl;
         //cout << "During Propagation : "<< endl;
         while(*ParticleInDomain == 1){
+
                 iPreviousPos[X_dir] = iPos[X_dir];
                 iPreviousPos[Y_dir] = iPos[Y_dir];
                 iPreviousPos[Z_dir] = iPos[Z_dir];
@@ -85,31 +86,32 @@ void cell::Propagation(double* Temperature, double* ParticleSizeFactor, double* 
                 iPos[Z_dir]     = floor(  dPos[Z_dir]/cell::dDimLength_per_cell[Z_dir]);
                 cell::ParticleEdge(ParticleSizeFactor, dPos, iCurrentEdgePos, ParticleInDomain );
                 cell::BoundaryMapping(iPos, dPos, ParticleInDomain);
-                //cout << "iPos =" << iPos[X_dir] << " " << iPos[Y_dir] << " " << iPos[Z_dir] << endl;
-                //cout << "iCurrentEdgePos = " << iCurrentEdgePos[0][X_dir] << " " << iCurrentEdgePos[0][Y_dir] << " " << iCurrentEdgePos[0][Z_dir] << endl;
-                //cout << "iCurrentEdgePos = " << iCurrentEdgePos [1][X_dir] << " " << iCurrentEdgePos[1][Y_dir] << " " << iCurrentEdgePos[1][Z_dir] << endl;
-                //cout << "iCurrentEdgePos = " << iCurrentEdgePos[2][X_dir] << " " << iCurrentEdgePos[2][Y_dir] << " " << iCurrentEdgePos[2][Z_dir] << endl;
-                //cout << "iCurrentEdgePos = " << iCurrentEdgePos[3][X_dir] << " " << iCurrentEdgePos[3][Y_dir] << " " << iCurrentEdgePos[3][Z_dir] << endl;
-                //cout << "iCurrentEdgePos = " << iCurrentEdgePos[4][X_dir] << " " << iCurrentEdgePos[4][Y_dir] << " " << iCurrentEdgePos[4][Z_dir] << endl;
-                //cout << "iCurrentEdgePos = " << iCurrentEdgePos[5][X_dir] << " " << iCurrentEdgePos[5][Y_dir] << " " << iCurrentEdgePos[5][Z_dir] << endl;
+                if(*ParticleInDomain == 0){
+                        break;
+                }
+
 
                 //--Count how many point for a seven-point molecule is on solid
+                CountPointInSolid = 0;
                 for(int i=0; i<6; i++){
-                        iCurrentEdgeTag[i] =  iCurrentEdgePos[i][X_dir]+( iCurrentEdgePos[i][Y_dir] + iCurrentEdgePos[i][Z_dir]*cell::iDimSize[Y_dir] )*cell::iDimSize[X_dir];
+                        iCurrentEdgeTag[i] =  iCurrentEdgePos[i][X_dir]
+                                                                         +( iCurrentEdgePos[i][Y_dir] + iCurrentEdgePos[i][Z_dir]*cell::iDimSize[Y_dir] )*cell::iDimSize[X_dir];
                         if (cell::iStatus[iCurrentEdgeTag[i]] == iSubstrateStat || cell::iStatus[iCurrentEdgeTag[i]] == iMaskStat)    CountPointInSolid++;
                 }
                 iCurrentTag =  iPos[X_dir] + ( iPos[Y_dir] + iPos[Z_dir]*iDimSize[Y_dir] )*iDimSize[X_dir];
                 if (cell::iStatus[iCurrentTag]  == iSubstrateStat || cell::iStatus[iCurrentTag] == iMaskStat)    CountPointInSolid++;
-
+                //cout << "CountPointInSolid = " << CountPointInSolid << endl;
 
                 //--Check if a particle collide on solid cell
                 if (CountPointInSolid < 1){
+                        if(Vel[Z_dir] == 0)        *ParticleInDomain = 0;
                         continue;
                 }else if (CountPointInSolid  > 1){
                         dPos[X_dir] = dPreviousPos[X_dir];
                         dPos[Y_dir] = dPreviousPos[Y_dir];
                         dPos[Z_dir] = dPreviousPos[Z_dir];
                         PropagationTimeInterval = 0.5 * PropagationTimeInterval;
+                        if ( PropagationTimeInterval*(*speed)/cell::dDimLength_per_cell[X_dir] < 1E-10)        *ParticleInDomain = 0;
                         continue;
                 }else if (CountPointInSolid == 1){
                         for (int i = 0; i < 6 ; i++){
@@ -122,13 +124,13 @@ void cell::Propagation(double* Temperature, double* ParticleSizeFactor, double* 
                         break;
                 }
         }//--End of while loop if CountPointInSolid == 1, that is, particle collide with solid (substrate or mask)
+
 }
 
 
 
 //--Output: normSurfaceNormal, normReflecteVelocity, GgrazinAangle, IncidenyAngle
-void cell::SurfaceNormal(int SearchingIndex [][3], int* SearchingNumber,  int* iPos, double* Vel, double* speed,
-                                              double* normSurfaceNormal, double* normReflectedVelocity, double* GrazingAngle, double* IncidentAngle ){
+void cell::SurfaceNormal(int SearchingIndex [][3], int* SearchingNumber,  int* iPos, double* Vel, double* speed, double* normSurfaceNormal){
 
         double Surfacesites [*SearchingNumber][3];
         int indexSurfacesites = 0;
@@ -250,41 +252,42 @@ void cell::SurfaceNormal(int SearchingIndex [][3], int* SearchingNumber,  int* i
          }
 
 
-        //--calculate the normalized reflected velocity
-        double normVel [3];
-        double dNdotVel;
-        if ( *speed == 0 ){
-                normVel[X_dir] = 0.0;  //--x component of normalized incident velocity vector
-                normVel[Y_dir] = 0.0;  //--y component of normalized incident velocity vector
-                normVel[Z_dir] = 0.0;  //--z component of normalized incident velocity vector
-        }else{
-                normVel[X_dir] = Vel[X_dir]/(*speed);  //--x component of normalized incident velocity vector
-                normVel[Y_dir] = Vel[Y_dir]/(*speed);  //--y component of normalized incident velocity vector
-                normVel[Z_dir] = Vel[Z_dir]/(*speed);  //--z component of normalized incident velocity vector
+}
+
+
+void cell::MaskReaction( int* iCollisionTag, double* energy, double* IncidentAngle, int* ParticleType, double* mass)
+{
+
+        int ReactionIndex;
+        int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
+        int ReflectedParticle= 0;                              //--index for original reflected particle such as Ar*, Cl*
+
+        if (  *ParticleType == iClRadicalType ){        ReflectedParticle = iClRadicalType;
+        }else if (  *ParticleType == iSiClgType ){     ReflectedParticle = iSiClgType;
+        }else if (  *ParticleType == iSiCl2gType ){  ReflectedParticle = iSiCl2gType;
+        }else if (  *ParticleType == iSiCl3gType ){  ReflectedParticle = iSiCl3gType;
+        }else if (  *ParticleType == iClIonType ){     ReflectedParticle = iClIonType;
+        }else if (  *ParticleType == iCl2IonType ){  ReflectedParticle = iCl2IonType;
+        }else if (   *ParticleType == iArIonType ){   ReflectedParticle = iArIonType;
         }
 
-        dNdotVel = normSurfaceNormal[X_dir]*normVel[X_dir]
-                              +normSurfaceNormal[Y_dir]*normVel[Y_dir]
-                              +normSurfaceNormal[Z_dir]*normVel[Z_dir];
-
-        normReflectedVelocity[X_dir] = normVel[X_dir] - 2*dNdotVel*normSurfaceNormal[X_dir];
-        normReflectedVelocity[Y_dir] = normVel[Y_dir] - 2*dNdotVel*normSurfaceNormal[Y_dir];
-        normReflectedVelocity[Z_dir] = normVel[Z_dir] - 2*dNdotVel*normSurfaceNormal[Z_dir];
-        double dAngle_N_Vel = acos(dNdotVel)*180/PI;
-
-        if ( dAngle_N_Vel  >  90 ){
-                 *IncidentAngle = 180 - dAngle_N_Vel;
-        }else{
-                *IncidentAngle = dAngle_N_Vel;
+        //--Assinge Product Particle Type and mass
+        *ParticleType = ReflectedParticle;
+        if( *ParticleType == iClRadicalType){           *mass = MassChlorine;
+        }else if ( *ParticleType == iSiClgType){       *mass = MassSilicon+MassChlorine;
+        }else if ( *ParticleType == iSiCl2gType){    *mass = MassSilicon+2*MassChlorine;
+        }else if ( *ParticleType == iSiCl3gType){    *mass = MassSilicon+3*MassChlorine;
+        }else if (  *ParticleType == iClIonType){      *mass = MassChlorine;
+        }else if ( *ParticleType == iCl2IonType){    *mass = MassChlorine*2;
+        }else if (  *ParticleType == iArIonType){     *mass = MassArgon;
         }
-        *GrazingAngle =  90 - *IncidentAngle;
 
 }
 
 
-void cell::SurfaceReaction( int* iCollisionTag, int* iPreviousCollisionTag, double* energy, double* IncidentAngle, int* ParticleType, double* mass)
-{
 
+
+void cell::SubstrateReaction( int* iCollisionTag, int* iPreviousCollisionTag, double* energy, double* IncidentAngle, int* ParticleType, double* mass){
         int ReactionIndex;
         int EmittedParticle = 0;                                   //--index for emitted particle such as SiClx(g)
         int ReflectedParticle= 0;                              //--index for original reflected particle such as Ar*, Cl*
@@ -305,49 +308,44 @@ void cell::SurfaceReaction( int* iCollisionTag, int* iPreviousCollisionTag, doub
         double phys_sputter_prob [10] = {0.55, 0.555, 0.60, 0.555, 0.85, 1.3, 1.355, 1.0, 0.75, 0.0};
         double chem_sputter_prob [10] = {1.00, 1.000, 1.00, 1.000, 1.00, 0.9, 0.800, 0.6, 0.30, 0.0};
 
-        if ( cell::iStatus[*iCollisionTag] == iMaskStat){
-                if (  *ParticleType == iClRadicalType ){        ReflectedParticle = iClRadicalType;
-                }else if (  *ParticleType == iSiClgType ){     ReflectedParticle = iSiClgType;
-                }else if (  *ParticleType == iSiCl2gType ){  ReflectedParticle = iSiCl2gType;
-                }else if (  *ParticleType == iSiCl3gType ){  ReflectedParticle = iSiCl3gType;
-                }else if (  *ParticleType == iClIonType ){     ReflectedParticle = iClIonType;
-                }else if (  *ParticleType == iCl2IonType ){  ReflectedParticle = iCl2IonType;
-                }else if (   *ParticleType == iArIonType ){   ReflectedParticle = iArIonType;
+        if( *ParticleType == iClRadicalType ){
+                int number_of_reactions = 6;
+                double ReactionProb [number_of_reactions];
+                cell::RadicalReactionProb(ParticleType, iCollisionTag, &number_of_reactions, p0_ClRadicalReaction, ReactionProb);
+                ClRadicalReaction(iCollisionTag, p0_ClRadicalReaction, &ReflectedParticle, &ReactionIndex);
+        }else if (  *ParticleType == iSiClgType){
+                Redeposition(ParticleType, iPreviousCollisionTag, p0_redeposition, &ReflectedParticle, &ReactionIndex);
+        }else if (  *ParticleType == iSiCl2gType){
+                Redeposition(ParticleType, iPreviousCollisionTag, p0_redeposition, &ReflectedParticle, &ReactionIndex);
+        }else if ( *ParticleType == iSiCl3gType){
+                Redeposition(ParticleType, iPreviousCollisionTag, p0_redeposition, &ReflectedParticle, &ReactionIndex);
+        }else if (  *ParticleType == iClIonType){
+                int number_of_reactions = 5;//p0_ClIonReaction.size();
+                double ReactionProb [number_of_reactions];
+                cell::IonReactionProb(ParticleType, iCollisionTag,  &number_of_reactions, Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction,
+                                                                type_ClIonReaction, phys_sputter_prob, chem_sputter_prob, energy, IncidentAngle, ReactionProb );
+                /*
+                for(int i = 0; i < number_of_reactions; i++){
+                        cout << ReactionProb[i];
                 }
-        }else if ( cell::iStatus[*iCollisionTag] == iSubstrateStat ){
-                if( *ParticleType == iClRadicalType ){
-                        int number_of_reactions = 6;
-                        double ReactionProb [number_of_reactions];
-                        cell::RadicalReactionProb(ParticleType, iCollisionTag, &number_of_reactions, p0_ClRadicalReaction, ReactionProb);
-                        ClRadicalReaction(iCollisionTag, p0_ClRadicalReaction, &ReflectedParticle, &ReactionIndex);
-                }else if (  *ParticleType == iSiClgType){
-                        Redeposition(ParticleType, iPreviousCollisionTag, p0_redeposition, &ReflectedParticle, &ReactionIndex);
-                }else if (  *ParticleType == iSiCl2gType){
-                        Redeposition(ParticleType, iPreviousCollisionTag, p0_redeposition, &ReflectedParticle, &ReactionIndex);
-                }else if ( *ParticleType == iSiCl3gType){
-                        Redeposition(ParticleType, iPreviousCollisionTag, p0_redeposition, &ReflectedParticle, &ReactionIndex);
-                }else if (  *ParticleType == iClIonType){
-                        int number_of_reactions = 5;//p0_ClIonReaction.size();
-                        double ReactionProb [number_of_reactions];
-                        cell::IonReactionProb(ParticleType, iCollisionTag,  &number_of_reactions, Eth_ClIonReaction, &E0_ClIonReaction, p0_ClIonReaction,
-                                                                        type_ClIonReaction, phys_sputter_prob, chem_sputter_prob, energy, IncidentAngle, ReactionProb );
-                        cell::ClIonReaction(iCollisionTag, energy, IncidentAngle, ReactionProb, &number_of_reactions,
-                                                                &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                }else if (  *ParticleType == iCl2IonType){
-                         int number_of_reactions = 6;//p0_Cl2IonReaction.size();
-                         double ReactionProb [number_of_reactions];
-                         cell::IonReactionProb(ParticleType, iCollisionTag,  &number_of_reactions, Eth_Cl2IonReaction, &E0_Cl2IonReaction, p0_Cl2IonReaction,
-                                                                        type_Cl2IonReaction, phys_sputter_prob, chem_sputter_prob, energy, IncidentAngle, ReactionProb );
-                         cell::Cl2IonReaction(iCollisionTag, energy, IncidentAngle, ReactionProb, &number_of_reactions,
-                                                                &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                }else if (  *ParticleType == iArIonType){
-                        int number_of_reactions = 4;
-                        double ReactionProb [number_of_reactions];
-                        cell::IonReactionProb(ParticleType, iCollisionTag,  &number_of_reactions, Eth_ArIonReaction, &E0_ArIonReaction, p0_ArIonReaction,
-                                                                        type_ArIonReaction, phys_sputter_prob, chem_sputter_prob, energy, IncidentAngle, ReactionProb );
-                        cell::ArIonReaction(iCollisionTag, energy, IncidentAngle, ReactionProb, &number_of_reactions,
-                                                                &ReflectedParticle, &EmittedParticle, &ReactionIndex);
-                }
+                cin.get();
+                */
+                cell::ClIonReaction(iCollisionTag, energy, IncidentAngle, ReactionProb, &number_of_reactions,
+                                                        &ReflectedParticle, &EmittedParticle, &ReactionIndex);
+        }else if (  *ParticleType == iCl2IonType){
+                int number_of_reactions = 6;//p0_Cl2IonReaction.size();
+                double ReactionProb [number_of_reactions];
+                cell::IonReactionProb(ParticleType, iCollisionTag,  &number_of_reactions, Eth_Cl2IonReaction, &E0_Cl2IonReaction, p0_Cl2IonReaction,
+                                                                type_Cl2IonReaction, phys_sputter_prob, chem_sputter_prob, energy, IncidentAngle, ReactionProb );
+                cell::Cl2IonReaction(iCollisionTag, energy, IncidentAngle, ReactionProb, &number_of_reactions,
+                                                            &ReflectedParticle, &EmittedParticle, &ReactionIndex);
+        }else if (  *ParticleType == iArIonType){
+                int number_of_reactions = 4;
+                double ReactionProb [number_of_reactions];
+                cell::IonReactionProb(ParticleType, iCollisionTag,  &number_of_reactions, Eth_ArIonReaction, &E0_ArIonReaction, p0_ArIonReaction,
+                                                                type_ArIonReaction, phys_sputter_prob, chem_sputter_prob, energy, IncidentAngle, ReactionProb );
+                cell::ArIonReaction(iCollisionTag, energy, IncidentAngle, ReactionProb, &number_of_reactions,
+                                                        &ReflectedParticle, &EmittedParticle, &ReactionIndex);
         }
 
         //--Assinge Product Particle Type and mass
@@ -363,44 +361,54 @@ void cell::SurfaceReaction( int* iCollisionTag, int* iPreviousCollisionTag, doub
 }
 
 
-void cell::ProductReflection( double* Temperature, int* iCollisionTag, double* normSurfaceNormal, double* normReflectedVelocity,
+
+
+
+
+void cell::MaskReflection( double* normReflectedVelocity, int* ParticleType, double* Vel, double* speed )
+{
+        if( *ParticleType == iClRadicalType ){//--iClRadical, iSiClg, iSiCl2g, iSiCl3g
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }else if ( *ParticleType == iSiClgType ){
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }else if ( *ParticleType == iSiCl2gType ){
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }else if ( *ParticleType == iSiCl3gType ){
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }else if ( *ParticleType == iClIonType ){
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }else if ( *ParticleType == iCl2IonType ){
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }else if ( *ParticleType == iArIonType ){
+                cell::ElasticReflection(normReflectedVelocity, speed, Vel );
+        }
+}
+
+
+
+
+void cell::SubstrateReflection( double* Temperature, double* normSurfaceNormal, double* normReflectedVelocity,
                                                              double* GrazingAngle, int* ParticleType, double* mass, double* Vel, double* speed, double* energy )
 {
-        if ( cell::iStatus[*iCollisionTag] == iMaskStat){
-                if( *ParticleType == iClRadicalType ){//--iClRadical, iSiClg, iSiCl2g, iSiCl3g
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }else if ( *ParticleType == iSiClgType ){
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }else if ( *ParticleType == iSiCl2gType ){
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }else if ( *ParticleType == iSiCl3gType ){
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }else if ( *ParticleType == iClIonType ){
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }else if ( *ParticleType == iCl2IonType ){
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }else if ( *ParticleType == iArIonType ){
-                        cell::ElasticReflection(normReflectedVelocity, speed, Vel );
-                }
-        }else if ( cell::iStatus[*iCollisionTag] == iSubstrateStat  ){//--iClIon, iCl2Ion, iArIon
-                if( *ParticleType == iClRadicalType ){//--iClRadical, iSiClg, iSiCl2g, iSiCl3g
-                         double ReemissionCosineLawPower = 100;
-                        cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
-                }else if ( *ParticleType == iSiClgType ){
-                        double ReemissionCosineLawPower = 100;
-                        cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
-                }else if ( *ParticleType == iSiCl2gType ){
-                        double ReemissionCosineLawPower = 100;
-                        cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
-                }else if ( *ParticleType == iSiCl3gType ){
-                        double ReemissionCosineLawPower = 100;
-                        cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
-                }else if ( *ParticleType == iClIonType ){
-                        cell::InelasticReflection(normReflectedVelocity, GrazingAngle, mass, Vel, speed, energy);
-                }else if ( *ParticleType == iCl2IonType ){
-                        cell::InelasticReflection(normReflectedVelocity, GrazingAngle, mass, Vel, speed, energy);
-                }else if ( *ParticleType == iArIonType ){
-                        cell::InelasticReflection(normReflectedVelocity, GrazingAngle, mass, Vel, speed, energy);
-                }
+        if( *ParticleType == iClRadicalType ){//--iClRadical, iSiClg, iSiCl2g, iSiCl3g
+                double ReemissionCosineLawPower = 2;
+
+                cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
+                 *speed = 0;
+        }else if ( *ParticleType == iSiClgType ){
+                double ReemissionCosineLawPower = 2;
+                cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
+        }else if ( *ParticleType == iSiCl2gType ){
+                double ReemissionCosineLawPower = 2;
+                cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
+        }else if ( *ParticleType == iSiCl3gType ){
+                double ReemissionCosineLawPower = 2;
+                cell::DiffusiveReflection(Temperature, normSurfaceNormal, &ReemissionCosineLawPower, mass, Vel, speed, energy);
+        }else if ( *ParticleType == iClIonType ){
+                cell::InelasticReflection(normReflectedVelocity, GrazingAngle, mass, Vel, speed, energy);
+        }else if ( *ParticleType == iCl2IonType ){
+                cell::InelasticReflection(normReflectedVelocity, GrazingAngle, mass, Vel, speed, energy);
+        }else if ( *ParticleType == iArIonType ){
+                cell::InelasticReflection(normReflectedVelocity, GrazingAngle, mass, Vel, speed, energy);
         }
 }

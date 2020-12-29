@@ -5,7 +5,10 @@
 using namespace std;
 //--Output: ParticleType and mass, Input: CumuProb
 void cell::GenerateParticleTypeMass(double* CumuProb, int* ParticleType, double* mass){
-        double randParticle = ran3(&iRandTag); //--Random number for Particle Type
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randParticle = unif(generator); //--Random number for Particle Type
         if (randParticle >= 0 && randParticle < CumuProb[0]){
                 *ParticleType = iClRadicalType;
                 *mass = MassChlorine;
@@ -26,8 +29,11 @@ void cell::GenerateParticleTypeMass(double* CumuProb, int* ParticleType, double*
 
 //--Output: dPos and iPos
 void cell::GeneratePosition( double* dPos, int* iPos){
-        double randPosX = ran3(&iRandTag);  //--Random number for X coordinate
-        double randPosY = ran3(&iRandTag);  //--Random number for Y coordinate
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randPosX = unif(generator);  //--Random number for X coordinate
+        double randPosY = unif(generator);  //--Random number for Y coordinate
         dPos[X_dir] = randPosX*cell::dDimLength[X_dir];
         dPos[Y_dir] = randPosY*cell::dDimLength[Y_dir];
         dPos[Z_dir] = cell::dDimLength[Z_dir]-cell::dDimLength_per_cell[Z_dir]*0.5;
@@ -43,27 +49,66 @@ void cell::GeneratePosition( double* dPos, int* iPos){
 }
 
 //--Output: Radical Velocity and speed
-void cell::GenerateRadicalVelocitySpeed(double* Temperature, double* mass, double* Vel, double* speed){
-        std::default_random_engine generator;
-        std::normal_distribution<double> distribution(0.0, 1.0);  //--Random number for three components of Velocity
-        do{
-                double v_mp = sqrt(2*BoltzmannConstant_SI* (*Temperature)/(*mass) );  //--the most probable velocity = sqrt(2kT/m)
-                Vel[X_dir] = v_mp*distribution(generator);
-                Vel[Y_dir] = v_mp*distribution(generator);
-                Vel[Z_dir] = v_mp*distribution(generator);
-                *speed = sqrt(Vel[X_dir]*Vel[X_dir]+Vel[Y_dir]*Vel[Y_dir]+Vel[Z_dir]*Vel[Z_dir]  );
-        }while( speed == 0);
-        if (Vel[Z_dir] > 0)    Vel[Z_dir] *= (-1);
+void cell::GenerateRadicalSpeed(double* Temperature, double* v_cut, double* mass, double* speed){
+        random_device rd;
+        std::default_random_engine generator( rd() ) ;
+        uniform_real_distribution<double> unif(0.0, 1.0);  // --Random number uniform distribution
+        double v_mp = sqrt(2*BoltzmannConstant_SI* (*Temperature)/(*mass) );  //--the most probable velocity = sqrt(2kT/m)
+        double p_max = Maxwell_Boltzmann_pdf(*mass, *Temperature, v_mp);  //--the maximal probability = p(v_mp)
+        double v_rand, p_rand, prob_density;
+        do
+        {
+                v_rand = unif(generator)*(*v_cut);          //--Generate first random numbr/
+                prob_density = Maxwell_Boltzmann_pdf(*mass, *Temperature, v_rand);   //--Mawwell Boltzmann distribution probability density funcion
+                p_rand = unif(generator)*p_max;         //--Generate second random number
+        }while (prob_density < p_rand);
+        *speed = v_rand;
 }
 
+
+//--Probability density function of Maxwell Boltzmann distribution
+double cell::Maxwell_Boltzmann_pdf(double mass, double T, double v){
+        double v_p = sqrt(2*BoltzmannConstant_SI*T/mass); // the most probable speed
+        return 4*PI*v*v/pow(PI, 1.5)/pow(v_p, 3.0)*exp( -pow(v/v_p, 2.0)  );
+}
+
+
+//--Cumulative density function of Maxwell Boltzmann distribution
+double cell::Maxwell_Boltzmann_cdf(double mass, double T, double v){
+        double v_p = sqrt(2*BoltzmannConstant_SI*T/mass); // the most probable speed
+        return erf(v/v_p) - 2/sqrt(PI)*(v/v_p)*exp( -pow(v/v_p, 2.0)  );
+}
+
+
+//--Calculate velocity of Cumulative density function of Maxwell Boltzmann distribution
+double cell::CalculateSpeedCutoff(double mass, double T){
+        double criterion = 0.0001;
+        double dv = 0.1;
+        double v_rms = sqrt(3*BoltzmannConstant_SI*T/mass);  // the root mean square velocity = sqrt(3kT/m)
+        double v = v_rms;
+        while(  (1 - Maxwell_Boltzmann_cdf(mass, T, v)  ) > criterion){
+                v = v + dv;
+        };
+        return v;
+}
+
+
+
+
 //--Output: Theta, Input: Velocity
-void cell::CalculateThetaFromVel(double* Vel, double* theta){
-        *theta = acos(Vel[Z_dir]/sqrt(Vel[X_dir]*Vel[X_dir]+Vel[Y_dir]*Vel[Y_dir]));
+void cell::GenerateTheta(double* theta){
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        *theta = unif(generator)*PI/2+PI/2;
 }
 
 //--Output: Phi
 void cell::GeneratePhi(double* phi){
-        double randPhi = ran3(&iRandTag);  //--Random number for Phi
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randPhi = unif(generator);  //--Random number for Phi
         *phi = randPhi*2*PI;
 }
 
@@ -71,13 +116,16 @@ void cell::GeneratePhi(double* phi){
 void cell::GenerateIonThetaEnergy(vector<double>& cumulativeflux, vector<double>& IonAngle,  vector<double>& IonEnergy,
                                                                                 double* theta, double* energy)
 {
-        double rand1 = ran3(&iRandTag);  //--Random number for flux
-        double rand2 = ran3(&iRandTag);  //--Random number for intropolation
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double rand1 = unif(generator);  //--Random number for flux
+        double rand2 = unif(generator);  //--Random number for intropolation
         for(int i = 0;    i < cumulativeflux.size()-1;     i++){
                 if  (  rand1 >= cumulativeflux[i] && rand1 < cumulativeflux[i+1]  ){
                         *theta =(    IonAngle[i] + rand2*(  IonAngle[i+1] - IonAngle[i]  )    )*PI/180+PI;  //--unit: radian
                         *energy = (    IonEnergy[i] + rand2*(  IonEnergy[i+1] - IonEnergy[i]  )    )/Joule_to_eV;  //--unit: Joule
-                                break;
+                        break;
                 }
         }
 }
@@ -235,7 +283,15 @@ void cell::IonReactionProb(int* ParticleType, int* iTag,  int* number_of_reactio
                                                         double* p0_IonReaction, int* type_IonReaction, double* phys_sputter_prob, double* chem_sputter_prob,
                                                         double* energy, double* IncidentAngle, double* ReactionProb )
 {
-
+/*
+if(*ParticleType == iClIonType){
+        for(int i = 0; i < *number_of_reactions ; i++){
+                cout << p0_IonReaction[i] << endl;
+                cout << Eth_IonReaction[i] << endl;
+                cout << type_IonReaction[i] << endl;
+        }
+}
+*/
         //--Calculation of prob of energy and prob of angle
         double prob_of_energy [*number_of_reactions];
         double prob_of_angle [*number_of_reactions];
@@ -289,7 +345,7 @@ void cell::IonReactionProb(int* ParticleType, int* iTag,  int* number_of_reactio
         }else if (*ParticleType == iCl2IonType){
                 denominator = cell::dNumSiClxs[*iTag][0] + cell::dNumSiClxs[*iTag][1] + cell::dNumSiClxs[*iTag][2]*2 + cell::dNumSiClxs[*iTag][3]*2 ;
         }else if (*ParticleType == iArIonType){
-                double denominator = cell::dNumSiClxs[*iTag][0] + cell::dNumSiClxs[*iTag][1] + cell::dNumSiClxs[*iTag][2] + cell::dNumSiClxs[*iTag][3] ;
+                denominator = cell::dNumSiClxs[*iTag][0] + cell::dNumSiClxs[*iTag][1] + cell::dNumSiClxs[*iTag][2] + cell::dNumSiClxs[*iTag][3] ;
         }
 
         for(int i = 0; i < *number_of_reactions; i++){
@@ -315,7 +371,10 @@ void cell::IonReactionProb(int* ParticleType, int* iTag,  int* number_of_reactio
 
 void cell::ClRadicalReaction(int* iTag, double* ReactionProb, int* ReflectedParticle, int* ReactionIndex){
 
-        double randReaction = ran3(&iRandTag);
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randReaction = unif(generator);
         if  ( randReaction < ReactionProb[0]  ){
                 //--reaction 1 : Si(s) + Cl --> SiCl(s)        p0_ClRadicalReaction[0] = 0.99
                 #pragma omp atomic
@@ -374,7 +433,10 @@ void cell::ClRadicalReaction(int* iTag, double* ReactionProb, int* ReflectedPart
 
 void cell::Redeposition( int* AdsorbParticle,  int* iTag, double* p0_redeposition, int* ReflectedParticle, int* ReactionIndex){
 
-        double randReaction = ran3(&iRandTag);
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randReaction = unif(generator);
         //--reaction 8 : M(s) + SiClx(g)  --> M(s) + SiClx(s)   p = 0.02   x=1,2,3
         if ( *AdsorbParticle == iSiClgType ){
                 if ( randReaction < p0_redeposition[0] ){
@@ -423,7 +485,10 @@ void cell::Redeposition( int* AdsorbParticle,  int* iTag, double* p0_redepositio
 void cell::ClIonReaction(int* iTag, double* energy, double* IncidentAngle, double* ReactionProb, int* number_of_reactions,
                                                     int* ReflectedParticle, int* EmitParticle, int* ReactionIndex){
 
-        double randReaction = ran3(&iRandTag);
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randReaction = unif(generator);
         if ( randReaction < ReactionProb[0]   ){
                 //--reaction 9 : Si(s) + Cl+ --> Si(g) + Cl*        p0_ClIonReaction[0] = 0.05    Eth = 25 eV    physical sputtering
                 #pragma omp atomic
@@ -482,7 +547,10 @@ void cell::ClIonReaction(int* iTag, double* energy, double* IncidentAngle, doubl
 void cell::Cl2IonReaction(int* iTag, double* energy, double* IncidentAngle, double* ReactionProb, int* number_of_reactions,
                                                     int* ReflectedParticle, int* EmitParticle, int* ReactionIndex){
 
-        double randReaction = ran3(&iRandTag);
+        random_device rd;
+        default_random_engine generator( rd() );  //--random number generator
+        uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randReaction = unif(generator);
         if (  randReaction < ReactionProb[0] ){
                 //--reaction  15 : Si(s) + Cl2^+ --> Si(g) + Cl2*        p0_Cl2IonReaction[0] = 0.02    Eth = 25 eV    physical sputtering
                 #pragma omp atomic
@@ -548,8 +616,10 @@ void cell::Cl2IonReaction(int* iTag, double* energy, double* IncidentAngle, doub
 
 void cell::ArIonReaction(int* iTag, double* energy, double* IncidentAngle, double* ReactionProb, int* number_of_reactions,
                                                     int* ReflectedParticle, int* EmitParticle, int* ReactionIndex){
-
-        double randReaction = ran3(&iRandTag);
+        random_device rd;
+        std::default_random_engine generator( rd() );  //--random number generator
+        std::uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+        double randReaction = unif(generator);
         if (  randReaction < ReactionProb[0] && dNumSiClxs[*iTag][0] > 0 ){
                 //--reaction 22 : Si(s) + Ar+ --> Si(g) + Ar*    p0_ArIonReaction[0] = 0.05    Eth = 25 eV    physical sputtering
                 #pragma omp atomic
@@ -613,16 +683,16 @@ void cell::InelasticReflection(double* normReflectedVelocity, double* GrazingAng
 {
         double EnergyDependentScalingFactor;
         double AngleDependentScalingFactor;
-        double Energy = *energy*Joule_to_eV;
+        double energy_in_unit_eV = *energy*Joule_to_eV;
         double epsilon_0 = 0.0;  //--unit: eV
         double epsilon_s = 50;  //--unit: eV
         double theta_0 = 30;  //--unit: degree
         double gamma_0 = 0.85;  //--a scaling factor, no unit
-        if ( Energy < epsilon_0 ){
+        if ( energy_in_unit_eV < epsilon_0 ){
                 EnergyDependentScalingFactor = 0;
-        }else if ( Energy >= epsilon_0 && Energy <= epsilon_s ){
-                EnergyDependentScalingFactor = (Energy - epsilon_0)/(epsilon_s - epsilon_0);
-        }else if (  Energy > epsilon_s){
+        }else if ( energy_in_unit_eV >= epsilon_0 && energy_in_unit_eV <= epsilon_s ){
+                EnergyDependentScalingFactor = (energy_in_unit_eV - epsilon_0)/(epsilon_s - epsilon_0);
+        }else if (  energy_in_unit_eV > epsilon_s){
                 EnergyDependentScalingFactor = 1;
         }
 
@@ -631,9 +701,14 @@ void cell::InelasticReflection(double* normReflectedVelocity, double* GrazingAng
         }else if (*GrazingAngle >= theta_0){
                 AngleDependentScalingFactor = 0.0;
         }
-
+        //cout << "energy = " << *energy << endl;
+        //cout << "speed = " << *speed<< endl;
+        //cout << AngleDependentScalingFactor << endl;
         *energy = *energy * gamma_0 * AngleDependentScalingFactor * EnergyDependentScalingFactor; //--updated energy
         *speed = sqrt(2* *energy/(*mass));                                                                                                                                              //--updated speed
+        //cout << "energy = " << *energy << endl;
+        //cout << "speed = " << *speed<< endl;
+
         Vel[X_dir] = *speed*normReflectedVelocity[X_dir];                                                                                                     //--updated x component of velocity
         Vel[Y_dir] = *speed*normReflectedVelocity[Y_dir];                                                                                                     //--updated y component of velocity
         Vel[Z_dir] = *speed*normReflectedVelocity[Z_dir];                                                                                                     //--updated z component of
@@ -644,11 +719,12 @@ void cell::InelasticReflection(double* normReflectedVelocity, double* GrazingAng
 void cell::DiffusiveReflection(double* Temperature, double* normSurfaceNormal, double* ReemissionCosineLawPower,
                                                                double* mass, double* Vel, double* speed, double* energy)
 {
-
-        std::default_random_engine generator;
+        random_device rd;
+        std::default_random_engine generator( rd() );
         std::normal_distribution<double> distribution(0.0, 1.0);
-        double randTheta = ran3(&iRandTag);
-        double randPhi = ran3(&iRandTag);
+        std::uniform_real_distribution<double> unif(0.0, 1.0);
+        double randTheta = unif(generator);
+        double randPhi = unif(generator);
         double theta = acos(   pow( randTheta, 1/(*ReemissionCosineLawPower+1) )   );
         double phi = randPhi*2*PI;
         double alpha;  //--azimusal angle of surface normal vector
@@ -661,6 +737,7 @@ void cell::DiffusiveReflection(double* Temperature, double* normSurfaceNormal, d
                 alpha = acos(normSurfaceNormal[X_dir] / sqrt_of_Nxsquare_plus_Nysquare );
                 beta = acos(normSurfaceNormal[Z_dir]);
         }
+
         do{
                 double v_mp = sqrt(2*BoltzmannConstant_SI*(*Temperature)/(*mass));  //--the most probable velocity = sqrt(2kT/m)
                 Vel[X_dir] = v_mp*distribution(generator);
