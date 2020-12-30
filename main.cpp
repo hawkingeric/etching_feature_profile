@@ -598,10 +598,11 @@ int main(int argc, char* argv[])
 
         double v_cut = C1.CalculateSpeedCutoff(MassChlorine, Temperature);
 
+
         ran3_ini(0);
         for ( int indexOutputFile = 1; indexOutputFile <= TotalOutputFile; indexOutputFile++){
                 for(int iParticle = 0; iParticle < TotalParticleInAFile; iParticle++){
-                        //cout << "iParticle = " << iParticle << endl;
+                        cout << "iParticle = " << iParticle << endl;
                         //--Properties of a particle
                         int ParticleType = 0;
                         double mass = 0;
@@ -610,90 +611,18 @@ int main(int argc, char* argv[])
                         double Vel[3] ={0.0};
                         double speed = 0;
                         double energy = 0;
-                        int ParticleInDomain = 1;
-                        int iCollisionTag = 0;
-                        int iPreviousCollisionTag = 0;
-
                         //--Output: Particle Type, mass, dPos, iPos, Vel, speed, energy
-                        C1.Generation(&Temperature, &v_cut, CumuProbIncidentParticle, cumulativeflux_ClIon, cumulativeflux_Cl2Ion, cumulativeflux_ArIon,
-                              IonEnergy, IonAngle, NEUTRAL_THETA_SCALING, ION_THETA_SCALING, NeutralThetaScalingFactor, IonThetaScalingFactor,
-                            &ParticleType, &mass, dPos, iPos, Vel, &speed, &energy );
+                        C1.Generation(&Temperature, CumuProbIncidentParticle, &v_cut, cumulativeflux_ClIon, cumulativeflux_Cl2Ion, cumulativeflux_ArIon,
+                                                         IonEnergy, IonAngle, NEUTRAL_THETA_SCALING, ION_THETA_SCALING,
+                                                         NeutralThetaScalingFactor, IonThetaScalingFactor,
+                                                         &ParticleType, &mass, dPos, iPos, Vel, &speed, &energy );
+                         //--Output: ParticleInDomain, iCollisionTag, iPreviousCollisionTag
+                         C1.Propagation(&Temperature, &PropagationTimestepNumber, &ParticleSizeFactor,
+                                                           SurfaceSearchingIndex, &SurfaceSearchingNumber,
+                                                           &ParticleType, &mass, dPos, iPos, Vel, &speed, &energy);
 
-
-                        while(ParticleType != 0) {
-                                //--Output: ParticleInDomain, iCollisionTag, iPreviousCollisionTag
-                                C1.Propagation(&Temperature, &PropagationTimestepNumber, &ParticleSizeFactor, dPos, iPos, Vel, &speed,
-                                                                  &ParticleInDomain, &iCollisionTag, &iPreviousCollisionTag);
-
-
-                                if(ParticleInDomain == 0){
-                                        ParticleType = 0;
-                                        break;
-                                }
-
-                                 //--To record the normalized normal vector and reflected vector
-                                double normSurfaceNormal [3] = {0.0};               //--normalized surface normal vector (x, y, z)
-                                double normIncidentVelocity [3] = {0.0};
-                                double normReflectedVelocity [3] = {0.0};          //--normalized reflected velocity vector (x, y, z)
-                                double GrazingAngle = 0.0;                                         //--angle between surface and velocity
-                                double IncidentAngle = 0.0;                                         //--angle between normal and velocity
-                                double normSurfaceNormal_dot_normIncidentVelocity;
-                                double arccos_N_dot_V;
-                                //--Output: normSurfaceNormal, normReflectedVelocity, GrazingAngle, IncidentAngle
-                                C1.SurfaceNormal(SurfaceSearchingIndex, &SurfaceSearchingNumber, iPos, Vel, &speed, normSurfaceNormal);
-                                //--calculate the normalized reflected velocity
-                                normIncidentVelocity[X_dir] = Vel[X_dir]/speed;  //--x component of normalized incident velocity vector
-                                normIncidentVelocity[Y_dir] = Vel[Y_dir]/speed;  //--y component of normalized incident velocity vector
-                                normIncidentVelocity[Z_dir] = Vel[Z_dir]/speed;  //--z component of normalized incident velocity vector
-                                normSurfaceNormal_dot_normIncidentVelocity = normSurfaceNormal[X_dir]*normIncidentVelocity[X_dir]
-                                                                                                                                       +normSurfaceNormal[Y_dir]*normIncidentVelocity[Y_dir]
-                                                                                                                                       +normSurfaceNormal[Z_dir]*normIncidentVelocity[Z_dir];
-                                normReflectedVelocity[X_dir] = normIncidentVelocity[X_dir] - 2*normSurfaceNormal_dot_normIncidentVelocity*normSurfaceNormal[X_dir];
-                                normReflectedVelocity[Y_dir] = normIncidentVelocity[Y_dir] - 2*normSurfaceNormal_dot_normIncidentVelocity*normSurfaceNormal[Y_dir];
-                                normReflectedVelocity[Z_dir] = normIncidentVelocity[Z_dir] - 2*normSurfaceNormal_dot_normIncidentVelocity*normSurfaceNormal[Z_dir];
-                                arccos_N_dot_V = acos(normSurfaceNormal_dot_normIncidentVelocity)*180/PI;
-                                if ( arccos_N_dot_V  <  90 ){
-                                        ParticleType = 0;
-                                        break;
-                                }else{
-                                        IncidentAngle = 180 - arccos_N_dot_V;
-                                }
-                                GrazingAngle =  90 - IncidentAngle;
-                                /*
-                                if(iPos[Z_dir] < 949 && iPos[X_dir] < 102 && ParticleType == iClIonType){
-                                        cout << "IncidentAngle = " << IncidentAngle << endl;
-                                        cin.get();
-                                }
-                                */
-
-                                if ( C1.iStatus[iCollisionTag] == iMaskStat){
-                                        //--Output: ParticleType, mass
-                                        C1.MaskReaction( &iCollisionTag, &energy, &IncidentAngle, &ParticleType, &mass);
-                                        if(ParticleType == 0){
-                                                break;
-                                        }
-                                        C1.MaskReflection( normReflectedVelocity, &ParticleType, Vel, &speed );
-                                        if ( speed == 0  ){
-                                                ParticleType = 0;
-                                                break;
-                                        }
-                                }else if ( C1.iStatus[iCollisionTag] == iSubstrateStat){
-                                        //--Output: ParticleType, mass
-                                        C1.SubstrateReaction( &iCollisionTag, &iPreviousCollisionTag, &energy, &IncidentAngle, &ParticleType, &mass);
-                                        if(ParticleType == 0){
-                                                break;
-                                        }
-                                        //--Output: Vel, speed, energy
-                                        C1.SubstrateReflection( &Temperature, normSurfaceNormal, normReflectedVelocity, &GrazingAngle,
-                                                                                            &ParticleType, &mass, Vel, &speed, &energy );
-                                        if ( speed == 0  ){
-                                                ParticleType = 0;
-                                                break;
-                                        }
-                                }
-                                //cout << "iParticle = " << iParticle << "  " << "ParticleType = " << ParticleType << endl;
-                         }//--End of while loop, exit if ParticlyType == 0
                 }//--End of particle loop
+                cout << "Total number of particle in a file : " << TotalParticleInAFile << endl;
                 if (   indexOutputFile == TotalOutputFile  ){
                         PRINT_SI = true;
                         PRINT_SICl = true;
@@ -704,5 +633,4 @@ int main(int argc, char* argv[])
                                             PRINT_SI, PRINT_SICl, PRINT_SICl2, PRINT_SICl3, directory+OutputFilename, append, indexOutputFile );
         }//--End of File loop
         cout << "Total number of files generated : " << TotalOutputFile <<endl;
-        cout << "Total Particle Number : " << particleNumber << endl;
 }//--End of Program

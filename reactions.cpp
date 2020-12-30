@@ -37,15 +37,9 @@ void cell::GeneratePosition( double* dPos, int* iPos){
         dPos[X_dir] = randPosX*cell::dDimLength[X_dir];
         dPos[Y_dir] = randPosY*cell::dDimLength[Y_dir];
         dPos[Z_dir] = cell::dDimLength[Z_dir]-cell::dDimLength_per_cell[Z_dir]*0.5;
-        //cout << "Nx Ny Nz = " << cell::iDimSize[X_dir] << " " << cell::iDimSize[Y_dir] << " " << cell::iDimSize[Z_dir] << endl;
-        //cout << "dx dy dz = " << cell::dDimLength_per_cell[X_dir] << " " << cell::dDimLength_per_cell[Y_dir] << " " << cell::dDimLength_per_cell[Z_dir] << endl;
-        //cout << "Lx Ly Lz = " << cell::dDimLength[X_dir] << " " << cell::dDimLength[Y_dir] << " " << cell::dDimLength[Z_dir] << endl;
         iPos[X_dir]     = floor(  dPos[X_dir]/cell::dDimLength_per_cell[X_dir]);
         iPos[Y_dir]     = floor(  dPos[Y_dir]/cell::dDimLength_per_cell[Y_dir]);
-        //cout << " dPos[Z_dir]/cell::dDimLength_per_cell[Z_dir] = " << dPos[Z_dir]/cell::dDimLength_per_cell[Z_dir] << endl;
         iPos[Z_dir]     = floor(  dPos[Z_dir]/cell::dDimLength_per_cell[Z_dir]);
-        //cout << iPos[Z_dir] << endl;
-
 }
 
 //--Output: Radical Velocity and speed
@@ -264,6 +258,9 @@ void cell::RadicalReactionProb(int* ParticleType, int* iTag,  int* number_of_rea
         ReactionProb[3] = p0_ClRadicalReaction[3]*cell::dNumSiClxs[*iTag][2]/denominator;
         ReactionProb[4] = p0_ClRadicalReaction[4]*cell::dNumSiClxs[*iTag][3]/denominator;
         ReactionProb[5] = p0_ClRadicalReaction[5]*cell::dNumSiClxs[*iTag][3]/denominator;
+
+
+
         for( int i = 0; i < *number_of_reactions; i++){
                 sumReactionProb += ReactionProb[i];
         }
@@ -277,6 +274,7 @@ void cell::RadicalReactionProb(int* ParticleType, int* iTag,  int* number_of_rea
                         ReactionProb[i] = ReactionProb[i-1] + ReactionProb[i] ;
                 }
         }
+
 }
 
 void cell::IonReactionProb(int* ParticleType, int* iTag,  int* number_of_reactions, double* Eth_IonReaction, double* E0,
@@ -302,6 +300,8 @@ if(*ParticleType == iClIonType){
         double angle_ratio;
         double EnhanceFactor;
         double energy_in_unit_eV = *energy*Joule_to_eV;
+        //cout << "energy_in_unit_eV = " << energy_in_unit_eV << endl;
+        //cout << "incident angle = " << *IncidentAngle << endl;
 
 
         for (int i = 0; i < *number_of_reactions; i++){
@@ -335,6 +335,7 @@ if(*ParticleType == iClIonType){
                                 prob_of_angle[i] = (chem_sputter_prob[angle_index+1]+chem_sputter_prob[angle_index]*angle_ratio)/(1+angle_ratio);
                         }
                 }
+                //cout << prob_of_energy[i] << " " << prob_of_angle[i] << endl;
         }
 
 
@@ -342,14 +343,25 @@ if(*ParticleType == iClIonType){
         double denominator;
         if(*ParticleType == iClIonType){
                 denominator = cell::dNumSiClxs[*iTag][0] + cell::dNumSiClxs[*iTag][1]*2 + cell::dNumSiClxs[*iTag][2] + cell::dNumSiClxs[*iTag][3] ;
+                ReactionProb[0] = prob_of_energy[0]*prob_of_angle[0]*cell::dNumSiClxs[*iTag][0]/denominator;
+                ReactionProb[1] = prob_of_energy[1]*prob_of_angle[1]*cell::dNumSiClxs[*iTag][1]/denominator;
+                ReactionProb[2] = prob_of_energy[2]*prob_of_angle[2]*cell::dNumSiClxs[*iTag][1]/denominator;
+                ReactionProb[3] = prob_of_energy[3]*prob_of_angle[3]*cell::dNumSiClxs[*iTag][2]/denominator;
+                ReactionProb[4] = prob_of_energy[4]*prob_of_angle[4]*cell::dNumSiClxs[*iTag][3]/denominator;
         }else if (*ParticleType == iCl2IonType){
                 denominator = cell::dNumSiClxs[*iTag][0] + cell::dNumSiClxs[*iTag][1] + cell::dNumSiClxs[*iTag][2]*2 + cell::dNumSiClxs[*iTag][3]*2 ;
+                ReactionProb[0] = prob_of_energy[0]*prob_of_angle[0]*cell::dNumSiClxs[*iTag][0]/denominator;
+                ReactionProb[1] = prob_of_energy[1]*prob_of_angle[1]*cell::dNumSiClxs[*iTag][1]/denominator;
+                ReactionProb[2] = prob_of_energy[2]*prob_of_angle[2]*cell::dNumSiClxs[*iTag][2]/denominator;
+                ReactionProb[3] = prob_of_energy[3]*prob_of_angle[3]*cell::dNumSiClxs[*iTag][2]/denominator;
+                ReactionProb[4] = prob_of_energy[4]*prob_of_angle[4]*cell::dNumSiClxs[*iTag][3]/denominator;
+                ReactionProb[5] = prob_of_energy[5]*prob_of_angle[5]*cell::dNumSiClxs[*iTag][3]/denominator;
         }else if (*ParticleType == iArIonType){
                 denominator = cell::dNumSiClxs[*iTag][0] + cell::dNumSiClxs[*iTag][1] + cell::dNumSiClxs[*iTag][2] + cell::dNumSiClxs[*iTag][3] ;
-        }
-
-        for(int i = 0; i < *number_of_reactions; i++){
-                ReactionProb[i] = prob_of_energy[i]*prob_of_angle[i]*cell::dNumSiClxs[*iTag][i]/denominator;
+                ReactionProb[0] = prob_of_energy[0]*prob_of_angle[0]*cell::dNumSiClxs[*iTag][0]/denominator;
+                ReactionProb[1] = prob_of_energy[1]*prob_of_angle[1]*cell::dNumSiClxs[*iTag][1]/denominator;
+                ReactionProb[2] = prob_of_energy[2]*prob_of_angle[2]*cell::dNumSiClxs[*iTag][2]/denominator;
+                ReactionProb[3] = prob_of_energy[3]*prob_of_angle[3]*cell::dNumSiClxs[*iTag][3]/denominator;
         }
 
         double sumReactionProb = 0;
@@ -374,6 +386,8 @@ void cell::ClRadicalReaction(int* iTag, double* ReactionProb, int* ReflectedPart
         random_device rd;
         default_random_engine generator( rd() );  //--random number generator
         uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
+
+
         double randReaction = unif(generator);
         if  ( randReaction < ReactionProb[0]  ){
                 //--reaction 1 : Si(s) + Cl --> SiCl(s)        p0_ClRadicalReaction[0] = 0.99
@@ -546,7 +560,6 @@ void cell::ClIonReaction(int* iTag, double* energy, double* IncidentAngle, doubl
 
 void cell::Cl2IonReaction(int* iTag, double* energy, double* IncidentAngle, double* ReactionProb, int* number_of_reactions,
                                                     int* ReflectedParticle, int* EmitParticle, int* ReactionIndex){
-
         random_device rd;
         default_random_engine generator( rd() );  //--random number generator
         uniform_real_distribution<double> unif(0.0, 1.0);  //--random number uniform distribution
@@ -662,9 +675,7 @@ void cell::ArIonReaction(int* iTag, double* energy, double* IncidentAngle, doubl
                 *ReactionIndex = 0;
         }
         if ( cell::dNumMaterial[*iTag] == 0 )   cell::setStatus(*iTag, iVacuumStat, 1);
-
 }
-
 
 
 //====================================================================================//
@@ -701,13 +712,10 @@ void cell::InelasticReflection(double* normReflectedVelocity, double* GrazingAng
         }else if (*GrazingAngle >= theta_0){
                 AngleDependentScalingFactor = 0.0;
         }
-        //cout << "energy = " << *energy << endl;
-        //cout << "speed = " << *speed<< endl;
-        //cout << AngleDependentScalingFactor << endl;
+
         *energy = *energy * gamma_0 * AngleDependentScalingFactor * EnergyDependentScalingFactor; //--updated energy
         *speed = sqrt(2* *energy/(*mass));                                                                                                                                              //--updated speed
-        //cout << "energy = " << *energy << endl;
-        //cout << "speed = " << *speed<< endl;
+
 
         Vel[X_dir] = *speed*normReflectedVelocity[X_dir];                                                                                                     //--updated x component of velocity
         Vel[Y_dir] = *speed*normReflectedVelocity[Y_dir];                                                                                                     //--updated y component of velocity

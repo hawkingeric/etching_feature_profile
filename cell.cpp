@@ -101,8 +101,6 @@ void cell::setNBR()
 #pragma acc routine seq
 void cell::setStatus(int iTagCell, int iST, int iNum)
 {
-        int iVacuumStat = 0;
-       int iSubstrateStat = 1, iMaskStat = 2;
         cell::iStatus[iTagCell]       = iST;
         if(iST == iVacuumStat ) // vacuumdvec
         {

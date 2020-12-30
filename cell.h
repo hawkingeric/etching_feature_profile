@@ -25,7 +25,6 @@ class cell
                 void Generation(double*, double*, double*,
                                     vector<double>, vector<double>, vector<double>,
                                     vector<double>, vector<double>, bool, bool, double, double, int*, double*, double*, int*, double*, double*, double* );
-                        //--Used in Generation
                         void GenerateParticleTypeMass(double*, int*, double*);
                         void GeneratePosition( double*, int*);
                         void GenerateTheta(double*);
@@ -36,21 +35,19 @@ class cell
                         double Maxwell_Boltzmann_pdf(double, double, double);
                         double Maxwell_Boltzmann_cdf(double, double, double);
                         double CalculateSpeedCutoff(double, double);
-               // void Propagation(double*, double*,  int*, int*, double*, double*, int*, double*, double*, double*, int*, int*);
-                void Propagation(double*, int*, double*, double*, int*, double*, double*, int*, int*, int*);
-                        //--Used in Propagation
+
+                void Propagation(double*, int*, double*, int [][3], int*, int*, double*, double*, int*, double*, double*, double*);
                         void BoundaryMapping(int*, double*, int*);
                         void ParticleEdge(double*, double*, int [][3], int*);
 
-
                 void SurfaceNormal(int [][3], int*,  int*, double*, double*, double*);
-                        //--Used in SurfaceNormal
                         void SurfaceSites(int [][3] , int*, int*, double [][3], int* );
 
+                void normReflectedVelocity(double*, double*, double*, double*, double*);
+                void SurfaceAngle(double*, int*, double*, double*);
 
                 void MaskReaction( int*, double*, double*, int*, double*);
                 void SubstrateReaction( int*, int*, double*, double*, int*, double*);
-                        //--Used in SurfaceReaction
                         void RadicalReactionProb(int*, int*, int*, double*, double* );
                         void IonReactionProb(int*, int*,  int*, double*, double*, double*, int*, double*, double*, double*, double*, double*);
                         void ClRadicalReaction(int*, double*, int*, int*);
